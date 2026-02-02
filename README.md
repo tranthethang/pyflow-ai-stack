@@ -55,7 +55,7 @@ This boilerplate is optimized for:
 
 ### Run the Application
 ```bash
-sh [./start.sh](./start.sh)
+sh [./bin/start.sh](./bin/start.sh)
 ```
 
 ### Verify System Health
@@ -66,10 +66,10 @@ python [./verify.py](./verify.py)
 
 ### Formatting
 ```bash
-sh [./format.sh](./format.sh)
+sh [./bin/format.sh](./bin/format.sh)
 ```
 
 ### Testing
 ```bash
-sh [./test.sh](./test.sh)
+sh [./bin/test.sh](./bin/test.sh)
 ```

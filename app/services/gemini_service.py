@@ -39,5 +39,16 @@ class GeminiService:
                 logger.error(f"Gemini error: {str(e)}")
                 raise e
 
+    async def ping(self) -> bool:
+        try:
+            if not self.model:
+                return False
+            # Simple check to see if the service is responsive
+            await self.generate_content("ping")
+            return True
+        except Exception as e:
+            logger.error(f"Gemini ping error: {str(e)}")
+            return False
+
 
 gemini_service = GeminiService()

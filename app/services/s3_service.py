@@ -50,5 +50,23 @@ class S3Service:
                 logger.error(f"S3 download error: {str(e)}")
                 raise e
 
+    async def ping(self) -> bool:
+        async with self.session.client(
+            "s3",
+            region_name=Config.AWS_REGION,
+            aws_access_key_id=Config.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=Config.AWS_SECRET_ACCESS_KEY,
+            endpoint_url=Config.S3_ENDPOINT_URL,
+            config=BotoConfig(
+                signature_version="s3v4", s3={"addressing_style": "path"}
+            ),
+        ) as s3:
+            try:
+                await s3.head_bucket(Bucket=Config.S3_BUCKET_NAME)
+                return True
+            except Exception as e:
+                logger.error(f"S3 ping error: {str(e)}")
+                return False
+
 
 s3_service = S3Service()

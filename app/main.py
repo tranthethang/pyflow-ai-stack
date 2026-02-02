@@ -16,16 +16,37 @@ app.include_router(v1_router, prefix="/api/v1", tags=["v1"])
 
 
 @app.get("/health")
-async def health_check():
+async def health_check(depends: int = 0):
+    from app.services.gemini_service import gemini_service
     from app.services.redis_service import redis_service
+    from app.services.s3_service import s3_service
 
-    redis_status = await redis_service.ping()
-
-    return {
+    health_status = {
         "status": "healthy",
         "app": Config.APP_NAME,
-        "redis": "connected" if redis_status else "disconnected",
     }
+
+    if depends == 1:
+        redis_status = await redis_service.ping()
+        gemini_status = await gemini_service.ping()
+        s3_status = await s3_service.ping()
+
+        health_status.update(
+            {
+                "redis": "connected" if redis_status else "disconnected",
+                "gemini": "connected" if gemini_status else "disconnected",
+                "s3": "connected" if s3_status else "disconnected",
+            }
+        )
+
+        if not all([redis_status, gemini_status, s3_status]):
+            health_status["status"] = "unhealthy"
+    else:
+        # Default behavior: only check redis or just return healthy
+        # User asked: (mặc định là 0: thì không check redis, gemini, s3)
+        pass
+
+    return health_status
 
 
 if __name__ == "__main__":
