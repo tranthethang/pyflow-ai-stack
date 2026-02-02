@@ -22,7 +22,8 @@ class GeminiService:
 
         async with self.semaphore:
             try:
-                content_parts = parts or []
+                # content_parts can be a list of strings or dicts (for file_data)
+                content_parts = parts if parts is not None else []
                 content_parts.append(prompt)
 
                 loop = asyncio.get_event_loop()

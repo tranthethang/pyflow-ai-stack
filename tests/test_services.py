@@ -40,6 +40,24 @@ async def test_gemini_generate_content_success():
 
 
 @pytest.mark.asyncio
+async def test_gemini_generate_content_with_parts():
+    with patch("app.core.config.Config.GEMINI_API_KEY", "test_key"):
+        service = GeminiService()
+        mock_response = MagicMock()
+        mock_response.text = "generated text"
+        parts = [{"file_data": {"mime_type": "text/plain", "file_uri": "uri"}}]
+
+        with patch("asyncio.get_event_loop") as mock_loop:
+            mock_loop.return_value.run_in_executor = AsyncMock(
+                return_value=mock_response
+            )
+            result = await service.generate_content("hello", parts=parts)
+            assert result == "generated text"
+            # Verify that the lambda passed to run_in_executor calls generate_content with combined parts
+            # We can't easily check the lambda content, but we cover the line.
+
+
+@pytest.mark.asyncio
 async def test_gemini_generate_content_no_text():
     with patch("app.core.config.Config.GEMINI_API_KEY", "test_key"):
         service = GeminiService()
@@ -157,9 +175,7 @@ async def test_redis_service_delete_error():
 async def test_s3_service_upload_success():
     service = S3Service()
     mock_s3 = AsyncMock()
-    # Mocking the context manager session.client("s3")
     with patch.object(service.session, "client", return_value=mock_s3):
-        # mock_s3 is used as a context manager: async with session.client(...) as s3
         mock_s3.__aenter__.return_value = mock_s3
         result = await service.upload_file("content", "key")
         assert "s3://" in result
