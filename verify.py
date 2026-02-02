@@ -11,7 +11,7 @@ from app.services.s3_service import s3_service
 
 load_dotenv()
 
-APP_PORT = os.getenv("APP_PORT", "8000")
+APP_PORT = os.getenv("APP_PORT", "80")
 BASE_URL = f"http://127.0.0.1:{APP_PORT}"
 
 
