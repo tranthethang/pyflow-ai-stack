@@ -210,3 +210,6 @@ assets/
 temp/
 .cache/
 .zencoder/
+
+# macOS
+.DS_Store
