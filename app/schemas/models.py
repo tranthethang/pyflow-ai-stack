@@ -4,7 +4,7 @@ Pydantic schemas for the application.
 This module defines the data models used for API requests and responses.
 """
 
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -48,7 +48,7 @@ class BatchRequest(BaseModel):
     """
 
     project_id: str
-    mode: str = "sync"
+    mode: Literal["sync", "async"] = "sync"
     global_files: Optional[List[GlobalFile]] = None
     tasks: List[TaskRequest]
     webhook_url: Optional[str] = None
@@ -82,3 +82,22 @@ class BatchResponse(BaseModel):
 
     project_id: str
     results: List[TaskResponse]
+
+
+class HealthResponse(BaseModel):
+    """
+    Schema for the health check response.
+
+    Attributes:
+        status (str): Overall health status ("healthy" or "unhealthy").
+        app (str): Name of the application.
+        redis (str, optional): Connection status for Redis.
+        gemini (str, optional): Connection status for Gemini.
+        s3 (str, optional): Connection status for S3.
+    """
+
+    status: str
+    app: str
+    redis: Optional[str] = None
+    gemini: Optional[str] = None
+    s3: Optional[str] = None

@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from app.api.v1.endpoints import router as v1_router
 from app.core.config import Config
 from app.core.logger import logger
+from app.schemas.models import HealthResponse
 
 app = FastAPI(
     title=Config.APP_NAME,
@@ -22,7 +23,7 @@ app = FastAPI(
 app.include_router(v1_router, prefix="/api/v1", tags=["v1"])
 
 
-@app.get("/health")
+@app.get("/health", response_model=HealthResponse, response_model_exclude_none=True)
 async def health_check(depends: int = 0):
     """
     Check the health of the application and its dependencies.
