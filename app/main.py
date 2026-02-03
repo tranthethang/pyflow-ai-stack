@@ -1,3 +1,10 @@
+"""
+Main application module for the FastAPI boilerplate.
+
+This module initializes the FastAPI application, registers API routes,
+and defines basic health check endpoints.
+"""
+
 import uvicorn
 from fastapi import FastAPI
 
@@ -17,6 +24,16 @@ app.include_router(v1_router, prefix="/api/v1", tags=["v1"])
 
 @app.get("/health")
 async def health_check(depends: int = 0):
+    """
+    Check the health of the application and its dependencies.
+
+    Args:
+        depends (int): Whether to check external dependencies (Redis, Gemini, S3).
+                       If 1, check dependencies; otherwise, only check app status.
+
+    Returns:
+        dict: A dictionary containing the health status of the application and its dependencies.
+    """
     from app.services.gemini_service import gemini_service
     from app.services.redis_service import redis_service
     from app.services.s3_service import s3_service

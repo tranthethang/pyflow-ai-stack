@@ -1,3 +1,10 @@
+"""
+Logging configuration module.
+
+This module sets up a logger that outputs to both the console and rotating log files.
+Log files are stored in the 'logs' directory and are rotated daily.
+"""
+
 import logging
 import os
 from datetime import datetime
@@ -7,6 +14,17 @@ from app.core.config import Config
 
 
 def setup_logger():
+    """
+    Configure and return the application logger.
+
+    Sets up:
+    1. A TimedRotatingFileHandler for daily log rotation.
+    2. A StreamHandler for console output.
+    3. Custom naming for rotated log files.
+
+    Returns:
+        logging.Logger: The configured application logger.
+    """
     log_dir = "logs"
     os.makedirs(log_dir, exist_ok=True)
 
@@ -24,6 +42,7 @@ def setup_logger():
         handler.setFormatter(formatter)
 
         def namer(default_name):
+            """Custom naming function for rotated log files."""
             base_dir = os.path.dirname(default_name)
             parts = default_name.split(".")
             rotate_date_str = parts[-1]
@@ -44,4 +63,5 @@ def setup_logger():
     return logger
 
 
+# Initialize and export the logger instance
 logger = setup_logger()

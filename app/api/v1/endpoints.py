@@ -1,3 +1,10 @@
+"""
+API endpoints for version 1.
+
+This module defines the routes for processing tasks and batches, including
+support for synchronous and asynchronous execution modes.
+"""
+
 import httpx
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
@@ -9,6 +16,16 @@ router = APIRouter()
 
 
 async def process_task(task, global_parts):
+    """
+    Process a single task using Gemini.
+
+    Args:
+        task (TaskRequest): The task to process.
+        global_parts (list): Shared content parts (files) for the task.
+
+    Returns:
+        TaskResponse: The result of the task execution.
+    """
     try:
         result = await gemini_service.generate_content(
             task.prompt, parts=list(global_parts)
@@ -20,6 +37,12 @@ async def process_task(task, global_parts):
 
 
 async def run_async_batch(request: BatchRequest):
+    """
+    Process a batch of tasks asynchronously in the background.
+
+    Args:
+        request (BatchRequest): The batch request containing tasks and files.
+    """
     global_parts = []
     if request.global_files:
         for f in request.global_files:
@@ -45,6 +68,19 @@ async def run_async_batch(request: BatchRequest):
 
 @router.post("/run", response_model=BatchResponse)
 async def run_batch(request: BatchRequest, background_tasks: BackgroundTasks):
+    """
+    Execute a batch of tasks.
+
+    Depending on the mode, tasks are either processed synchronously or
+    added to background tasks for asynchronous processing.
+
+    Args:
+        request (BatchRequest): The batch request data.
+        background_tasks (BackgroundTasks): FastAPI background tasks handler.
+
+    Returns:
+        BatchResponse: Synchronous results or an acknowledgment for async mode.
+    """
     logger.info(
         f"Processing batch for project: {request.project_id} | Mode: {request.mode}"
     )
