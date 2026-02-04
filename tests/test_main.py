@@ -1,9 +1,11 @@
 import pytest
 from fastapi.testclient import TestClient
-from app.main import app
+
 from app.core.config import Config
+from app.main import app
 
 client = TestClient(app)
+
 
 def test_health_check_basic():
     """Test the basic health check endpoint."""
@@ -15,6 +17,7 @@ def test_health_check_basic():
     assert "redis" not in data
     assert "gemini" not in data
     assert "s3" not in data
+
 
 def test_health_check_full():
     """Test the health check endpoint with dependencies."""
