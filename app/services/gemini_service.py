@@ -6,6 +6,7 @@ manages concurrency, and integrates with the BaseService hook system.
 """
 
 import asyncio
+import os
 from typing import Any, Dict, List, Optional, cast
 
 import google.generativeai as genai
@@ -106,6 +107,53 @@ class GeminiService(BaseService):
             except Exception as e:
                 logger.error(f"Gemini error: {str(e)}")
                 raise e
+
+    async def upload_file(
+        self, temp_path: str, filename: str, mime_type: str = None
+    ) -> Any:
+        """
+        Upload a file to Gemini, wrapped with service hooks.
+
+        Args:
+            temp_path (str): Path to the temporary file.
+            filename (str): Display name for the file.
+            mime_type (str, optional): MIME type of the file.
+
+        Returns:
+            Any: The uploaded Gemini file object.
+        """
+        return await self.execute_with_hooks(
+            "upload_file",
+            self._upload_file,
+            temp_path,
+            filename,
+            mime_type,
+        )
+
+    async def _upload_file(
+        self, temp_path: str, filename: str, mime_type: str = None
+    ) -> Any:
+        """Internal method to upload file to Gemini."""
+        if not self.model:
+            raise ValueError("Gemini model is not initialized. Check GEMINI_API_KEY.")
+
+        async with self.semaphore:
+            try:
+                logger.info(f"Uploading file to Gemini: {filename}")
+                loop = asyncio.get_event_loop()
+                gemini_file = await loop.run_in_executor(
+                    None,
+                    lambda: genai.upload_file(
+                        path=temp_path, display_name=filename, mime_type=mime_type
+                    ),
+                )
+                return gemini_file
+            except Exception as e:
+                logger.error(f"Gemini upload error: {str(e)}")
+                raise e
+            finally:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
 
     async def ping(self) -> bool:
         """
