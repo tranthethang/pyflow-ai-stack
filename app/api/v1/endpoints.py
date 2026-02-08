@@ -10,7 +10,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from app.core.logger import logger
 from app.schemas.models import BatchRequest, BatchResponse, TaskResponse
-from app.services.gemini_service import gemini_service
+from app.services.gemini_service import get_gemini_service
 
 router = APIRouter()
 
@@ -27,7 +27,7 @@ async def process_task(task, global_parts):
         TaskResponse: The result of the task execution.
     """
     try:
-        result = await gemini_service.generate_content(
+        result = await get_gemini_service().generate_content(
             task.prompt, parts=list(global_parts)
         )
         return TaskResponse(task_id=task.task_id, status="success", result=result)

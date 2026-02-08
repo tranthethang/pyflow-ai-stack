@@ -5,9 +5,11 @@ This module uses Pydantic Settings to load configuration from environment variab
 and .env files. It provides structured access to application, Gemini, Redis, and S3 settings.
 """
 
-from typing import Optional
+from typing import Any, Dict, Optional, Tuple, Type
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import AliasChoices, Field
+from pydantic_settings import (BaseSettings, PydanticBaseSettingsSource,
+                               SettingsConfigDict)
 
 from app.services.configs import GeminiConfig, RedisConfig, S3Config
 
@@ -38,12 +40,28 @@ class Settings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: Type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> Tuple[PydanticBaseSettingsSource, ...]:
+        """
+        Prioritize .env file over shell environment variables.
+        """
+        return init_settings, dotenv_settings, env_settings, file_secret_settings
+
     APP_NAME: str = "fastapi-boilerplate"
     DEBUG: bool = False
     APP_PORT: int = 80
 
     # Gemini API Configuration
-    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_API_KEY: Optional[str] = Field(
+        default=None, validation_alias=AliasChoices("GEMINI_API_KEY", "GOOGLE_API_KEY")
+    )
     GEMINI_MODEL: str = "gemini-2.0-flash"
     CONCURRENCY_LIMIT: int = 5
 

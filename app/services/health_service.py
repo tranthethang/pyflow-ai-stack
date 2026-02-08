@@ -9,7 +9,7 @@ from typing import Any, Dict
 
 from app.core.config import settings
 from app.services.base import BaseService
-from app.services.gemini_service import gemini_service
+from app.services.gemini_service import get_gemini_service
 from app.services.redis_service import redis_service
 from app.services.s3_service import s3_service
 
@@ -49,7 +49,7 @@ class HealthService(BaseService):
 
         if depends == 1:
             redis_status = await redis_service.ping()
-            gemini_status = await gemini_service.ping()
+            gemini_status = await get_gemini_service().ping()
             s3_status = await s3_service.ping()
 
             health_status.update(

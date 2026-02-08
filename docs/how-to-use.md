@@ -27,9 +27,10 @@ Handles AI content generation using Google's Gemini API with advanced prompt and
 
 **Usage:**
 ```python
-from app.services.gemini_service import gemini_service
+from app.services.gemini_service import get_gemini_service
 
 # Basic usage
+gemini_service = get_gemini_service()
 result = await gemini_service.generate_content("Your prompt here")
 
 # Advanced usage with System Prompt and Generation Config

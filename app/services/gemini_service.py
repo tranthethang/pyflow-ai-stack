@@ -9,7 +9,8 @@ import asyncio
 import os
 from typing import Any, Dict, List, Optional, cast
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from app.core.logger import logger
 from app.services.base import BaseService
@@ -33,11 +34,10 @@ class GeminiService(BaseService):
         super().__init__()
         self.config = config
         if config.api_key:
-            genai.configure(api_key=config.api_key)
-            self.model = genai.GenerativeModel(config.model_name)
+            self.client = genai.Client(api_key=config.api_key.strip())
             self.semaphore = asyncio.Semaphore(config.concurrency_limit)
         else:
-            self.model = None
+            self.client = None
             logger.warning("GEMINI_API_KEY not set. GeminiService will not function.")
 
     async def generate_content(
@@ -76,27 +76,31 @@ class GeminiService(BaseService):
         parts: Optional[List[Any]] = None,
     ) -> str:
         """Internal method to call Gemini API."""
-        if not self.model:
-            raise ValueError("Gemini model is not initialized. Check GEMINI_API_KEY.")
+        if not self.client:
+            raise ValueError("Gemini client is not initialized. Check GEMINI_API_KEY.")
 
         async with self.semaphore:
             try:
                 content_parts = parts if parts is not None else []
                 content_parts.append(prompt)
 
-                model = self.model
+                # Configure generation settings
+                config_params = {}
                 if system_instruction:
-                    # Create a new model instance with system instruction if provided
-                    model = genai.GenerativeModel(
-                        model_name=self.config.model_name,
-                        system_instruction=system_instruction,
-                    )
+                    config_params["system_instruction"] = system_instruction
 
-                loop = asyncio.get_event_loop()
-                response = await loop.run_in_executor(
-                    None,
-                    lambda: model.generate_content(
-                        content_parts, generation_config=cast(Any, generation_config)
+                if generation_config:
+                    if isinstance(generation_config, dict):
+                        config_params.update(generation_config)
+                    # We assume generation_config is a dictionary compatible with GenerateContentConfig
+
+                response = await self.client.aio.models.generate_content(
+                    model=self.config.model_name,
+                    contents=content_parts,
+                    config=(
+                        types.GenerateContentConfig(**config_params)
+                        if config_params
+                        else None
                     ),
                 )
 
@@ -134,18 +138,21 @@ class GeminiService(BaseService):
         self, temp_path: str, filename: str, mime_type: str = None
     ) -> Any:
         """Internal method to upload file to Gemini."""
-        if not self.model:
-            raise ValueError("Gemini model is not initialized. Check GEMINI_API_KEY.")
+        if not self.client:
+            raise ValueError("Gemini client is not initialized. Check GEMINI_API_KEY.")
 
         async with self.semaphore:
             try:
                 logger.info(f"Uploading file to Gemini: {filename}")
-                loop = asyncio.get_event_loop()
-                gemini_file = await loop.run_in_executor(
-                    None,
-                    lambda: genai.upload_file(
-                        path=temp_path, display_name=filename, mime_type=mime_type
-                    ),
+
+                upload_config = None
+                if filename or mime_type:
+                    upload_config = types.UploadFileConfig(
+                        display_name=filename, mime_type=mime_type
+                    )
+
+                gemini_file = await self.client.aio.files.upload(
+                    file=temp_path, config=upload_config
                 )
                 return gemini_file
             except Exception as e:
@@ -163,7 +170,7 @@ class GeminiService(BaseService):
             bool: True if healthy, False otherwise.
         """
         try:
-            if not self.model:
+            if not self.client:
                 return False
             # Simple check to see if the service is responsive
             await self._generate_content("ping")
@@ -173,7 +180,20 @@ class GeminiService(BaseService):
             return False
 
 
-from app.core.config import settings
+def get_gemini_service() -> GeminiService:
+    """
+    Get the global GeminiService instance (lazily initialized).
 
-# Global singleton instance
-gemini_service = GeminiService(settings.gemini)
+    Returns:
+        GeminiService: The Gemini service instance.
+    """
+    from app.core.config import settings
+
+    global _gemini_service
+    if "_gemini_service" not in globals():
+        globals()["_gemini_service"] = GeminiService(settings.gemini)
+    return globals()["_gemini_service"]
+
+
+# Maintain backward compatibility but encourage get_gemini_service()
+# We'll initialize it lazily when accessed if possible, but for now just provide the function

@@ -88,38 +88,50 @@ def gemini_config():
 
 @pytest.mark.asyncio
 async def test_gemini_service_initialization(gemini_config):
-    service = GeminiService(gemini_config)
-    assert service.model is not None
-    assert service.config.api_key == "test_key"
+    with patch("app.services.gemini_service.genai.Client") as mock_client:
+        service = GeminiService(gemini_config)
+        assert service.client is not None
+        mock_client.assert_called_once_with(api_key="test_key")
 
 
 @pytest.mark.asyncio
 async def test_gemini_service_initialization_no_key():
     config = GeminiConfig(api_key=None)
     service = GeminiService(config)
-    assert service.model is None
+    assert service.client is None
 
 
 @pytest.mark.asyncio
 async def test_gemini_generate_content_success(gemini_config):
-    service = GeminiService(gemini_config)
-    mock_response = MagicMock()
-    mock_response.text = "generated text"
+    with patch("app.services.gemini_service.genai.Client") as mock_client_cls:
+        # Setup the mock chain: client.aio.models.generate_content
+        mock_instance = mock_client_cls.return_value
+        mock_generate = AsyncMock()
+        mock_instance.aio.models.generate_content = mock_generate
 
-    with patch("asyncio.get_event_loop") as mock_loop:
-        mock_loop.return_value.run_in_executor = AsyncMock(return_value=mock_response)
+        mock_response = MagicMock()
+        mock_response.text = "generated text"
+        mock_generate.return_value = mock_response
+
+        service = GeminiService(gemini_config)
         result = await service.generate_content("hello")
+
         assert result == "generated text"
+        mock_generate.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_gemini_generate_content_with_advanced_options(gemini_config):
-    service = GeminiService(gemini_config)
-    mock_response = MagicMock()
-    mock_response.text = "advanced result"
+    with patch("app.services.gemini_service.genai.Client") as mock_client_cls:
+        mock_instance = mock_client_cls.return_value
+        mock_generate = AsyncMock()
+        mock_instance.aio.models.generate_content = mock_generate
 
-    with patch("asyncio.get_event_loop") as mock_loop:
-        mock_loop.return_value.run_in_executor = AsyncMock(return_value=mock_response)
+        mock_response = MagicMock()
+        mock_response.text = "advanced result"
+        mock_generate.return_value = mock_response
+
+        service = GeminiService(gemini_config)
         result = await service.generate_content(
             "hello",
             system_instruction="You are a helpful assistant",
@@ -127,26 +139,40 @@ async def test_gemini_generate_content_with_advanced_options(gemini_config):
         )
         assert result == "advanced result"
 
+        # Verify call arguments
+        call_kwargs = mock_generate.call_args.kwargs
+        assert call_kwargs["model"] == "gemini-pro"
+        assert call_kwargs["contents"] == ["hello"]
+        assert call_kwargs["config"].system_instruction == "You are a helpful assistant"
+        assert call_kwargs["config"].temperature == 0.7
+
 
 @pytest.mark.asyncio
 async def test_gemini_generate_content_no_text(gemini_config):
-    service = GeminiService(gemini_config)
-    mock_response = MagicMock()
-    mock_response.text = None
+    with patch("app.services.gemini_service.genai.Client") as mock_client_cls:
+        mock_instance = mock_client_cls.return_value
+        mock_generate = AsyncMock()
+        mock_instance.aio.models.generate_content = mock_generate
 
-    with patch("asyncio.get_event_loop") as mock_loop:
-        mock_loop.return_value.run_in_executor = AsyncMock(return_value=mock_response)
+        mock_response = MagicMock()
+        mock_response.text = None
+        mock_generate.return_value = mock_response
+
+        service = GeminiService(gemini_config)
         result = await service.generate_content("hello")
         assert result == ""
 
 
 @pytest.mark.asyncio
 async def test_gemini_generate_content_error(gemini_config):
-    service = GeminiService(gemini_config)
-    with patch("asyncio.get_event_loop") as mock_loop:
-        mock_loop.return_value.run_in_executor = AsyncMock(
-            side_effect=Exception("API Error")
-        )
+    with patch("app.services.gemini_service.genai.Client") as mock_client_cls:
+        mock_instance = mock_client_cls.return_value
+        mock_generate = AsyncMock()
+        mock_instance.aio.models.generate_content = mock_generate
+
+        mock_generate.side_effect = Exception("API Error")
+
+        service = GeminiService(gemini_config)
         with pytest.raises(Exception) as excinfo:
             await service.generate_content("hello")
         assert "API Error" in str(excinfo.value)
@@ -158,26 +184,34 @@ async def test_gemini_generate_content_no_model():
     service = GeminiService(config)
     with pytest.raises(ValueError) as excinfo:
         await service.generate_content("hello")
-    assert "Gemini model is not initialized" in str(excinfo.value)
+    assert "Gemini client is not initialized" in str(excinfo.value)
 
 
 @pytest.mark.asyncio
 async def test_gemini_ping_success(gemini_config):
-    service = GeminiService(gemini_config)
-    mock_response = MagicMock()
-    mock_response.text = "pong"
-    with patch("asyncio.get_event_loop") as mock_loop:
-        mock_loop.return_value.run_in_executor = AsyncMock(return_value=mock_response)
+    with patch("app.services.gemini_service.genai.Client") as mock_client_cls:
+        mock_instance = mock_client_cls.return_value
+        mock_generate = AsyncMock()
+        mock_instance.aio.models.generate_content = mock_generate
+
+        mock_response = MagicMock()
+        mock_response.text = "pong"
+        mock_generate.return_value = mock_response
+
+        service = GeminiService(gemini_config)
         assert await service.ping() is True
 
 
 @pytest.mark.asyncio
 async def test_gemini_ping_failure(gemini_config):
-    service = GeminiService(gemini_config)
-    with patch("asyncio.get_event_loop") as mock_loop:
-        mock_loop.return_value.run_in_executor = AsyncMock(
-            side_effect=Exception("Fail")
-        )
+    with patch("app.services.gemini_service.genai.Client") as mock_client_cls:
+        mock_instance = mock_client_cls.return_value
+        mock_generate = AsyncMock()
+        mock_instance.aio.models.generate_content = mock_generate
+
+        mock_generate.side_effect = Exception("Fail")
+
+        service = GeminiService(gemini_config)
         assert await service.ping() is False
 
 
