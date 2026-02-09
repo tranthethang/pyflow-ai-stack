@@ -1,55 +1,56 @@
 # Publishing Guide
 
-This guide explains how to publish the **PyFlow AI Stack** to PyPI and share it with the community.
+This guide explains how to publish the **pyflow-ai-stack** package to [PyPI](https://pypi.org) and share it with the community.
 
 ## 📦 Publishing to PyPI
 
 ### 1. Prerequisites
-Ensure you have `build` and `twine` installed:
+Ensure you have the latest versions of `build` and `twine` installed:
 ```bash
-pip install build twine
+pip install --upgrade build twine
 ```
 
 ### 2. Update Version
-Update the version number in `pyproject.toml`:
+Before publishing, ensure the version number in [./pyproject.toml](./pyproject.toml) is correct:
 ```toml
 [project]
-version = "1.0.1"
+name = "pyflow-ai-stack"
+version = "1.0.0"
 ```
 
 ### 3. Build the Package
-Run the following command to generate distribution archives:
+Run the following command from the project root to generate distribution archives:
 ```bash
 python -m build
 ```
-This will create a `dist/` directory with `.tar.gz` and `.whl` files.
+This will create a `dist/` directory containing:
+- `pyflow_ai_stack-<version>.tar.gz` (Source Distribution)
+- `pyflow_ai_stack-<version>-py3-none-any.whl` (Built Distribution)
 
 ### 4. Upload to PyPI
 Use `twine` to upload the package to PyPI:
 ```bash
 python -m twine upload dist/*
 ```
-*Note: You will need a PyPI account and an API token.*
+*Note: You will be prompted for your PyPI username (`__token__`) and password (your API token).*
 
 ---
 
 ## 🤝 Sharing with the Community
 
 ### 1. GitHub Repository
-- Ensure your `README.md` is up-to-date.
-- Create a new [Release](https://github.com/your-repo/releases) on GitHub.
-- Add descriptive tags (e.g., `fastapi`, `ai-boilerplate`, `gemini`, `workflow-node`).
+- Ensure your [./README.md](./README.md) is up-to-date.
+- Create a new [Release](https://github.com/tranthethang/pyflow-ai-stack/releases) on GitHub.
+- Add descriptive tags (e.g., `fastapi`, `gemini`, `ai-worker`, `workflow-node`).
 
 ### 2. Dify Community
-If you are submitting this as a custom node for **Dify**:
-- Document the API endpoints clearly in `docs/`.
-- Export your Dify DSL if applicable.
+If you are submitting this as a custom node or backend service for **Dify**:
+- Document the API usage clearly in [./docs/](./docs/).
 - Share the repository link in the [Dify Discord](https://discord.gg/dify) or GitHub Discussions.
 
-### 3. Social Platforms
-- Share on **LinkedIn** or **X (Twitter)** using the hashtag `#FastAPI #GenerativeAI #Python`.
-- Submit to **Awesome-FastAPI** or similar curated lists.
+---
 
 ## 🛠️ Maintenance
-- Regularly update dependencies in `requirements.txt` and `pyproject.toml`.
-- Monitor GitHub Issues and Pull Requests for community feedback.
+- **Update Dependencies**: Regularly check and update dependencies in [./pyproject.toml](./pyproject.toml).
+- **Versioning**: Follow [Semantic Versioning](https://semver.org/) for new releases.
+- **Support**: Monitor GitHub Issues and Pull Requests for community feedback.
