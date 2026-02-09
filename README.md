@@ -12,152 +12,155 @@ It provides a unified, production-ready interface for interacting with **Google 
 - **Asynchronous Caching**: Optimized Redis service for high-throughput data persistence and retrieval.
 - **Scalable Storage**: Multi-cloud support for AWS S3, MinIO, and other S3-compatible providers.
 - **Production Ready**: Built-in logging, error handling, and health check diagnostics.
-- **Workflow Native**: Specifically architected to act as a backend for workflow nodes and microservice workers.
+- **Base Service & Hooks**: Intercept execution at `before`, `after`, and `error` stages for all services.
 
 ---
 
 ## 🛠️ Installation
 
-You can install the library directly from the repository:
+You can install the library directly from [PyPI](https://pypi.org/project/pyflow-ai-stack/):
+
+```bash
+pip install pyflow-ai-stack==1.0.0
+```
+
+Alternatively, install from the repository:
 
 ```bash
 pip install git+https://github.com/tranthethang/pyflow-ai-stack.git
 ```
 
-Or if you are developing locally:
-
-```bash
-git clone https://github.com/tranthethang/pyflow-ai-stack.git
-cd pyflow-ai-stack
-pip install .
-```
-
 ---
 
-## 🚀 Quick Start
+## 🧠 Core Concepts
 
-### 1. Configuration
-
-The library uses a centralized `Settings` class powered by Pydantic. You can configure it via environment variables or a `.env` file.
+### 1. Configuration System
+The library uses `Pydantic Settings` for centralized configuration. You can load settings from environment variables, a `.env` file, or pass them directly.
 
 ```python
 from pyflow_ai_stack import Settings
 
-# Load settings from environment/defaults
+# Default loading (ENV -> .env -> defaults)
 settings = Settings()
 
-# Or load from a specific .env file
-settings = Settings.load(env_file=".env")
+# Access specific service configs
+gemini_cfg = settings.gemini
+redis_cfg = settings.redis
+s3_cfg = settings.s3
 ```
 
-### 2. Using Gemini AI
-
-Handle complex LLM tasks with the `GeminiService`.
-
-```python
-import asyncio
-from pyflow_ai_stack import GeminiService, Settings
-
-async def main():
-    settings = Settings()
-    service = GeminiService(settings.gemini)
-    
-    # Generate simple text
-    response = await service.generate_content("Explain quantum computing in 50 words.")
-    print(f"Gemini: {response}")
-
-    # Generate with system instructions
-    response = await service.generate_content(
-        prompt="Tell me a joke.",
-        system_instruction="You are a sarcastic comedian."
-    )
-    print(f"Sarcastic Gemini: {response}")
-
-asyncio.run(main())
-```
-
-### 3. Asynchronous Caching with Redis
+### 2. Base Service & Hooks
+All services (Gemini, Redis, S3) inherit from `BaseService`, providing a hook mechanism to intercept execution.
 
 ```python
-import asyncio
 from pyflow_ai_stack import RedisService, Settings
 
-async def cache_example():
-    settings = Settings()
-    redis = RedisService(settings.redis)
-    
-    # Set a value with 60s expiration
-    await redis.set("user_session_123", '{"name": "John"}', expire=60)
-    
-    # Get a value
-    data = await redis.get("user_session_123")
-    print(f"Cached Data: {data}")
+settings = Settings()
+redis_service = RedisService(settings.redis)
 
-asyncio.run(cache_example())
+async def log_before(context):
+    print(f"Executing {context['method']} in {context['service']}")
+
+redis_service.add_hook("before", log_before)
 ```
 
-### 4. S3 Object Storage
+---
+
+## 🚀 Service Usage
+
+### 1. Gemini Service
+Handles AI content generation using Google's Gemini API with managed concurrency.
 
 ```python
-import asyncio
+from pyflow_ai_stack import GeminiService, Settings
+
+settings = Settings()
+gemini_service = GeminiService(settings.gemini)
+
+# Basic generation
+result = await gemini_service.generate_content("Your prompt here")
+
+# Advanced usage with System Prompt
+result = await gemini_service.generate_content(
+    prompt="Tell me a joke",
+    system_instruction="You are a sarcastic comedian.",
+    generation_config={"temperature": 0.9}
+)
+```
+
+### 2. Redis Service
+Handles asynchronous caching and state management.
+
+```python
+from pyflow_ai_stack import RedisService, Settings
+
+settings = Settings()
+redis = RedisService(settings.redis)
+
+# Set a value
+await redis.set("key", "value", expire=3600)
+
+# Get a value
+value = await redis.get("key")
+```
+
+### 3. S3 Service
+Handles asynchronous file storage on AWS S3 or MinIO.
+
+```python
 from pyflow_ai_stack import S3Service, Settings
 
-async def s3_example():
-    settings = Settings()
-    s3 = S3Service(settings.s3)
-    
-    # Upload content
-    uri = await s3.upload_file(
-        content="Hello S3!",
-        s3_key="notes/hello.txt",
-        content_type="text/plain"
-    )
-    print(f"Uploaded to: {uri}")
-    
-    # Download content
-    content = await s3.get_file("notes/hello.txt")
-    print(f"Downloaded: {content}")
+settings = Settings()
+s3 = S3Service(settings.s3)
 
-asyncio.run(s3_example())
+# Upload a file
+s3_uri = await s3.upload_file(
+    content="file content", 
+    s3_key="path/to/file.txt",
+    content_type="text/plain"
+)
 ```
 
----
-
-## 📂 Library Components
-
-| Component | Description |
-| :--- | :--- |
-| `GeminiService` | Handles interactions with Google Generative AI (Gemini). |
-| `RedisService` | Asynchronous Redis client for caching and state management. |
-| `S3Service` | Asynchronous S3 client for object storage (AWS, MinIO, etc.). |
-| `HealthService` | Aggregates health status from all connected services. |
-| `Settings` | Pydantic-based configuration management. |
-
----
-
-## 🏥 Health Diagnostics
-
-Ensure all your services are correctly configured and reachable:
+### 4. Health Service
+Aggregates health status from all connected services.
 
 ```python
-import asyncio
-from pyflow_ai_stack import HealthService, Settings, GeminiService, RedisService, S3Service
+from pyflow_ai_stack import HealthService, GeminiService, RedisService, S3Service, Settings
 
-async def check_system():
-    settings = Settings()
-    
-    # Pass service instances to HealthService
-    health = HealthService(
-        gemini=GeminiService(settings.gemini),
-        redis=RedisService(settings.redis),
-        s3=S3Service(settings.s3)
-    )
-    
-    status = await health.check_health(depends=1)
-    print(f"System Status: {status}")
+settings = Settings()
+health = HealthService(
+    gemini=GeminiService(settings.gemini),
+    redis=RedisService(settings.redis),
+    s3=S3Service(settings.s3)
+)
 
-asyncio.run(check_system())
+# Deep health check
+status = await health.check_health(depends=1)
 ```
+
+---
+
+## ⚙️ Environment Variables
+
+Settings are automatically loaded from these environment variables:
+
+### Gemini
+- `GEMINI_API_KEY`: Google AI API Key.
+- `GEMINI_MODEL`: Model version (default: `gemini-2.0-flash`).
+- `CONCURRENCY_LIMIT`: Max concurrent requests (default: `5`).
+
+### Redis
+- `REDIS_HOST`: Redis host (default: `localhost`).
+- `REDIS_PORT`: Redis port (default: `6379`).
+- `REDIS_PASSWORD`: Optional password.
+- `REDIS_DB`: Database index (default: `0`).
+
+### S3 / Storage
+- `AWS_ACCESS_KEY_ID`: AWS Access Key.
+- `AWS_SECRET_ACCESS_KEY`: AWS Secret Key.
+- `AWS_REGION`: AWS Region (default: `ap-southeast-1`).
+- `S3_BUCKET_NAME`: Target bucket.
+- `S3_ENDPOINT_URL`: Custom endpoint for MinIO/other S3 providers.
 
 ---
 
