@@ -8,8 +8,8 @@ support for synchronous and asynchronous execution modes.
 import httpx
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
-from app.core.logger import logger
-from app.core.services import get_gemini_service
+from examples.core.logger import logger
+from examples.core.services import get_gemini_service
 from pyflow_ai_stack.schemas.models import (BatchRequest, BatchResponse,
                                             TaskResponse)
 

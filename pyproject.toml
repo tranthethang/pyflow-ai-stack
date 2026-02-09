@@ -39,5 +39,5 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 include = ["pyflow_ai_stack*"]

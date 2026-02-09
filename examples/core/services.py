@@ -1,6 +1,6 @@
 from typing import Optional
 
-from app.core.config import get_settings
+from examples.core.config import get_settings
 from pyflow_ai_stack.services.gemini_service import GeminiService
 from pyflow_ai_stack.services.health_service import HealthService
 from pyflow_ai_stack.services.redis_service import RedisService

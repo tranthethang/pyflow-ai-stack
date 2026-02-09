@@ -8,10 +8,10 @@ and defines basic health check endpoints.
 import uvicorn
 from fastapi import FastAPI
 
-from app.api.v1.endpoints import router as v1_router
-from app.core.config import get_settings
-from app.core.logger import logger
-from app.core.services import get_health_service
+from examples.api.v1.endpoints import router as v1_router
+from examples.core.config import get_settings
+from examples.core.logger import logger
+from examples.core.services import get_health_service
 from pyflow_ai_stack.schemas.models import HealthResponse
 
 settings = get_settings()
@@ -44,7 +44,7 @@ async def health_check(depends: int = 0):
 if __name__ == "__main__":
     logger.info(f"Starting {settings.APP_NAME} on port: {settings.APP_PORT}")
     uvicorn.run(
-        "app.main:app",
+        "examples.web_api_usage:app",
         host="0.0.0.0",
         port=settings.APP_PORT,
         reload=settings.DEBUG,
