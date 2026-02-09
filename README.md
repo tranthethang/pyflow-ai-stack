@@ -56,9 +56,10 @@ Handle complex LLM tasks with the `GeminiService`.
 
 ```python
 import asyncio
-from pyflow_ai_stack import GeminiService
+from pyflow_ai_stack import GeminiService, Settings
 
 async def main():
+    settings = Settings()
     service = GeminiService(settings.gemini)
     
     # Generate simple text
@@ -78,9 +79,11 @@ asyncio.run(main())
 ### 3. Asynchronous Caching with Redis
 
 ```python
-from pyflow_ai_stack import RedisService
+import asyncio
+from pyflow_ai_stack import RedisService, Settings
 
 async def cache_example():
+    settings = Settings()
     redis = RedisService(settings.redis)
     
     # Set a value with 60s expiration
@@ -96,9 +99,11 @@ asyncio.run(cache_example())
 ### 4. S3 Object Storage
 
 ```python
-from pyflow_ai_stack import S3Service
+import asyncio
+from pyflow_ai_stack import S3Service, Settings
 
 async def s3_example():
+    settings = Settings()
     s3 = S3Service(settings.s3)
     
     # Upload content
@@ -135,9 +140,12 @@ asyncio.run(s3_example())
 Ensure all your services are correctly configured and reachable:
 
 ```python
-from pyflow_ai_stack import HealthService
+import asyncio
+from pyflow_ai_stack import HealthService, Settings, GeminiService, RedisService, S3Service
 
 async def check_system():
+    settings = Settings()
+    
     # Pass service instances to HealthService
     health = HealthService(
         gemini=GeminiService(settings.gemini),

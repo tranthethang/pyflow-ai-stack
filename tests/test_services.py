@@ -1,4 +1,5 @@
 import asyncio
+import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -7,8 +8,110 @@ from pyflow_ai_stack.services.base import BaseService
 from pyflow_ai_stack.services.configs import (GeminiConfig, RedisConfig,
                                               S3Config)
 from pyflow_ai_stack.services.gemini_service import GeminiService
+from pyflow_ai_stack.services.health_service import HealthService
 from pyflow_ai_stack.services.redis_service import RedisService
 from pyflow_ai_stack.services.s3_service import S3Service
+
+# --- GeminiService Upload Tests ---
+
+
+@pytest.mark.asyncio
+async def test_gemini_upload_file_success(gemini_config, tmp_path):
+    with patch(
+        "pyflow_ai_stack.services.gemini_service.genai.Client"
+    ) as mock_client_cls:
+        mock_instance = mock_client_cls.return_value
+        mock_upload = AsyncMock()
+        mock_instance.aio.files.upload = mock_upload
+
+        mock_file = MagicMock()
+        mock_upload.return_value = mock_file
+
+        service = GeminiService(gemini_config)
+        temp_file = tmp_path / "test.txt"
+        temp_file.write_text("hello")
+
+        result = await service.upload_file(str(temp_file), "test.txt", "text/plain")
+        assert result == mock_file
+        mock_upload.assert_called_once()
+        assert not os.path.exists(str(temp_file))
+
+
+@pytest.mark.asyncio
+async def test_gemini_upload_file_error(gemini_config, tmp_path):
+    with patch(
+        "pyflow_ai_stack.services.gemini_service.genai.Client"
+    ) as mock_client_cls:
+        mock_instance = mock_client_cls.return_value
+        mock_upload = AsyncMock()
+        mock_instance.aio.files.upload = mock_upload
+        mock_upload.side_effect = Exception("Upload fail")
+
+        service = GeminiService(gemini_config)
+        temp_file = tmp_path / "test.txt"
+        temp_file.write_text("hello")
+
+        with pytest.raises(Exception):
+            await service.upload_file(str(temp_file), "test.txt")
+        assert not os.path.exists(str(temp_file))
+
+
+@pytest.mark.asyncio
+async def test_gemini_upload_file_no_client():
+    config = GeminiConfig(api_key=None)
+    service = GeminiService(config)
+    with pytest.raises(ValueError) as excinfo:
+        await service.upload_file("path", "name")
+    assert "Gemini client is not initialized" in str(excinfo.value)
+
+
+# --- HealthService Tests ---
+
+
+@pytest.mark.asyncio
+async def test_health_service_basic():
+    service = HealthService(app_name="test-app")
+    result = await service.check_health(depends=0)
+    assert result["status"] == "healthy"
+    assert result["app"] == "test-app"
+    assert "redis" not in result
+
+
+@pytest.mark.asyncio
+async def test_health_service_full_success():
+    rs = AsyncMock()
+    rs.ping.return_value = True
+    gs = AsyncMock()
+    gs.ping.return_value = True
+    s3 = AsyncMock()
+    s3.ping.return_value = True
+
+    service = HealthService(redis_service=rs, gemini_service=gs, s3_service=s3)
+    result = await service.check_health(depends=1)
+
+    assert result["status"] == "healthy"
+    assert result["redis"] == "connected"
+    assert result["gemini"] == "connected"
+    assert result["s3"] == "connected"
+
+
+@pytest.mark.asyncio
+async def test_health_service_full_failure():
+    rs = AsyncMock()
+    rs.ping.return_value = False
+    gs = AsyncMock()
+    gs.ping.return_value = False
+    s3 = AsyncMock()
+    s3.ping.return_value = False
+
+    service = HealthService(redis_service=rs, gemini_service=gs, s3_service=s3)
+    result = await service.check_health(depends=1)
+
+    assert result["status"] == "unhealthy"
+    assert result["redis"] == "disconnected"
+    assert result["gemini"] == "disconnected"
+    assert result["s3"] == "disconnected"
+
 
 # --- BaseService Tests ---
 
