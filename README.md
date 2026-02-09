@@ -1,75 +1,158 @@
 # PyFlow AI Stack
 
-A high-performance **FastAPI** boilerplate specifically designed for developing **nodes** and **workers** within microservices or **Workflow Automation systems** (such as **Dify**).
+**PyFlow AI Stack** is a high-performance Python library designed for building robust **Node APIs** and **AI Workers** within workflow automation systems (like **Dify**, LangChain, or custom microservices).
 
-This project provides a robust foundation for AI-powered components, featuring native integration with Google Gemini, asynchronous caching, and scalable object storage.
+It provides a unified, production-ready interface for interacting with **Google Gemini AI**, **Redis Caching**, and **S3-compatible Object Storage**, featuring built-in concurrency management, health diagnostics, and structured configuration.
 
-## 🚀 Purpose
-This boilerplate is optimized for:
-- **Microservices**: Acting as a specialized node for processing specific tasks.
-- **Workflow Automation**: Easily integrate as a custom tool or worker in platforms like **Dify**, LangChain, or internal automation pipelines.
-- **AI Workers**: Native support for LLM-driven tasks with pre-configured Gemini API integration.
+---
 
 ## ✨ Key Features
-- **FastAPI**: Modern, high-performance web framework.
-- **Gemini AI**: Built-in service for Google's Generative AI models.
-- **Redis Caching**: Asynchronous caching to optimize performance and reduce API costs.
-- **AWS S3 / MinIO**: Scalable object storage for handling documents, images, or datasets.
-- **Health Diagnostics**: Integrated `verify.py` to ensure all external services (Redis, S3, Gemini) are correctly configured.
-- **Developer Experience**: Pre-configured `black` and `isort` for formatting, and `pytest` for comprehensive testing.
 
-## 🛠️ Getting Started
+- **Unified AI Interface**: Seamlessly interact with Google Gemini models with managed concurrency.
+- **Asynchronous Caching**: Optimized Redis service for high-throughput data persistence and retrieval.
+- **Scalable Storage**: Multi-cloud support for AWS S3, MinIO, and other S3-compatible providers.
+- **Production Ready**: Built-in logging, error handling, and health check diagnostics.
+- **Workflow Native**: Specifically architected to act as a backend for workflow nodes and microservice workers.
 
-### Prerequisites
-- Python 3.9+
-- Redis (local or remote)
-- AWS S3 or MinIO credentials
-- Google Gemini API Key
+---
 
-### Installation
-1. **Clone the repository**:
-   ```bash
-   git clone <repository-url>
-   cd pyflow-ai-stack
-   ```
+## 🛠️ Installation
 
-2. **Install dependencies**:
-   ```bash
-   pip install -r [./requirements.txt](./requirements.txt)
-   ```
+You can install the library directly from the repository:
 
-3. **Environment Setup**:
-   ```bash
-   cp [./.env.example](./.env.example) .env
-   # Edit .env with your specific credentials
-   ```
-
-## 📂 Project Structure
-- [./app/](./app/): Core application logic.
-  - [./app/api/](./app/api/): API versioned routes.
-  - [./app/services/](./app/services/): Business logic for Gemini, Redis, and S3.
-- [./verify.py](./verify.py): Diagnostic tool for service connectivity.
-- [./tests/](./tests/): Comprehensive test suite.
-
-## 🛠️ Usage
-
-### Run the Application
 ```bash
-sh [./bin/start.sh](./bin/start.sh)
+pip install git+https://github.com/tranthethang/pyflow-ai-stack.git
 ```
 
-### Verify System Health
-Before deploying, ensure all services are connected:
+Or if you are developing locally:
+
 ```bash
-python [./verify.py](./verify.py)
+git clone https://github.com/tranthethang/pyflow-ai-stack.git
+cd pyflow-ai-stack
+pip install .
 ```
 
-### Formatting
-```bash
-sh [./bin/format.sh](./bin/format.sh)
+---
+
+## 🚀 Quick Start
+
+### 1. Configuration
+
+The library uses a centralized `Settings` class powered by Pydantic. You can configure it via environment variables or a `.env` file.
+
+```python
+from pyflow_ai_stack import Settings
+
+# Load settings from environment/defaults
+settings = Settings()
+
+# Or load from a specific .env file
+settings = Settings.load(env_file=".env")
 ```
 
-### Testing
-```bash
-sh [./bin/test.sh](./bin/test.sh)
+### 2. Using Gemini AI
+
+Handle complex LLM tasks with the `GeminiService`.
+
+```python
+import asyncio
+from pyflow_ai_stack import GeminiService
+
+async def main():
+    service = GeminiService(settings.gemini)
+    
+    # Generate simple text
+    response = await service.generate_content("Explain quantum computing in 50 words.")
+    print(f"Gemini: {response}")
+
+    # Generate with system instructions
+    response = await service.generate_content(
+        prompt="Tell me a joke.",
+        system_instruction="You are a sarcastic comedian."
+    )
+    print(f"Sarcastic Gemini: {response}")
+
+asyncio.run(main())
 ```
+
+### 3. Asynchronous Caching with Redis
+
+```python
+from pyflow_ai_stack import RedisService
+
+async def cache_example():
+    redis = RedisService(settings.redis)
+    
+    # Set a value with 60s expiration
+    await redis.set("user_session_123", '{"name": "John"}', expire=60)
+    
+    # Get a value
+    data = await redis.get("user_session_123")
+    print(f"Cached Data: {data}")
+
+asyncio.run(cache_example())
+```
+
+### 4. S3 Object Storage
+
+```python
+from pyflow_ai_stack import S3Service
+
+async def s3_example():
+    s3 = S3Service(settings.s3)
+    
+    # Upload content
+    uri = await s3.upload_file(
+        content="Hello S3!",
+        s3_key="notes/hello.txt",
+        content_type="text/plain"
+    )
+    print(f"Uploaded to: {uri}")
+    
+    # Download content
+    content = await s3.get_file("notes/hello.txt")
+    print(f"Downloaded: {content}")
+
+asyncio.run(s3_example())
+```
+
+---
+
+## 📂 Library Components
+
+| Component | Description |
+| :--- | :--- |
+| `GeminiService` | Handles interactions with Google Generative AI (Gemini). |
+| `RedisService` | Asynchronous Redis client for caching and state management. |
+| `S3Service` | Asynchronous S3 client for object storage (AWS, MinIO, etc.). |
+| `HealthService` | Aggregates health status from all connected services. |
+| `Settings` | Pydantic-based configuration management. |
+
+---
+
+## 🏥 Health Diagnostics
+
+Ensure all your services are correctly configured and reachable:
+
+```python
+from pyflow_ai_stack import HealthService
+
+async def check_system():
+    # Pass service instances to HealthService
+    health = HealthService(
+        gemini=GeminiService(settings.gemini),
+        redis=RedisService(settings.redis),
+        s3=S3Service(settings.s3)
+    )
+    
+    status = await health.check_health(depends=1)
+    print(f"System Status: {status}")
+
+asyncio.run(check_system())
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
