@@ -10,10 +10,8 @@ import os
 from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 
-from app.core.config import Config
 
-
-def setup_logger():
+def setup_logger(app_name: str = "pyflow-ai-stack"):
     """
     Configure and return the application logger.
 
@@ -21,6 +19,9 @@ def setup_logger():
     1. A TimedRotatingFileHandler for daily log rotation.
     2. A StreamHandler for console output.
     3. Custom naming for rotated log files.
+
+    Args:
+        app_name (str): The name of the application for the logger.
 
     Returns:
         logging.Logger: The configured application logger.
@@ -30,7 +31,7 @@ def setup_logger():
 
     log_filename = os.path.join(log_dir, f"{datetime.now().strftime('%Y%m%d')}.log")
 
-    logger = logging.getLogger(Config.APP_NAME)
+    logger = logging.getLogger(app_name)
     logger.setLevel(logging.INFO)
 
     if not logger.handlers:

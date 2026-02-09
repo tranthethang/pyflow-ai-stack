@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyflow-ai-stack"
+version = "1.0.0"
+authors = [
+  { name="tranthethang", email="tranthethang@gmail.com" },
+]
+description = "A high-performance FastAPI boilerplate for creating Node APIs in workflows, with Gemini, Redis, and S3 integration."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic-settings",
+    "google-genai",
+    "aioboto3",
+    "redis",
+    "httpx",
+    "python-multipart",
+    "python-dotenv",
+    "boto3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "black",
+    "isort",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pyflow_ai_stack*"]

@@ -3,11 +3,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.services.base import BaseService
-from app.services.configs import GeminiConfig, RedisConfig, S3Config
-from app.services.gemini_service import GeminiService
-from app.services.redis_service import RedisService
-from app.services.s3_service import S3Service
+from pyflow_ai_stack.services.base import BaseService
+from pyflow_ai_stack.services.configs import (GeminiConfig, RedisConfig,
+                                              S3Config)
+from pyflow_ai_stack.services.gemini_service import GeminiService
+from pyflow_ai_stack.services.redis_service import RedisService
+from pyflow_ai_stack.services.s3_service import S3Service
 
 # --- BaseService Tests ---
 
@@ -88,7 +89,7 @@ def gemini_config():
 
 @pytest.mark.asyncio
 async def test_gemini_service_initialization(gemini_config):
-    with patch("app.services.gemini_service.genai.Client") as mock_client:
+    with patch("pyflow_ai_stack.services.gemini_service.genai.Client") as mock_client:
         service = GeminiService(gemini_config)
         assert service.client is not None
         mock_client.assert_called_once_with(api_key="test_key")
@@ -103,7 +104,9 @@ async def test_gemini_service_initialization_no_key():
 
 @pytest.mark.asyncio
 async def test_gemini_generate_content_success(gemini_config):
-    with patch("app.services.gemini_service.genai.Client") as mock_client_cls:
+    with patch(
+        "pyflow_ai_stack.services.gemini_service.genai.Client"
+    ) as mock_client_cls:
         # Setup the mock chain: client.aio.models.generate_content
         mock_instance = mock_client_cls.return_value
         mock_generate = AsyncMock()
@@ -122,7 +125,9 @@ async def test_gemini_generate_content_success(gemini_config):
 
 @pytest.mark.asyncio
 async def test_gemini_generate_content_with_advanced_options(gemini_config):
-    with patch("app.services.gemini_service.genai.Client") as mock_client_cls:
+    with patch(
+        "pyflow_ai_stack.services.gemini_service.genai.Client"
+    ) as mock_client_cls:
         mock_instance = mock_client_cls.return_value
         mock_generate = AsyncMock()
         mock_instance.aio.models.generate_content = mock_generate
@@ -149,7 +154,9 @@ async def test_gemini_generate_content_with_advanced_options(gemini_config):
 
 @pytest.mark.asyncio
 async def test_gemini_generate_content_no_text(gemini_config):
-    with patch("app.services.gemini_service.genai.Client") as mock_client_cls:
+    with patch(
+        "pyflow_ai_stack.services.gemini_service.genai.Client"
+    ) as mock_client_cls:
         mock_instance = mock_client_cls.return_value
         mock_generate = AsyncMock()
         mock_instance.aio.models.generate_content = mock_generate
@@ -165,7 +172,9 @@ async def test_gemini_generate_content_no_text(gemini_config):
 
 @pytest.mark.asyncio
 async def test_gemini_generate_content_error(gemini_config):
-    with patch("app.services.gemini_service.genai.Client") as mock_client_cls:
+    with patch(
+        "pyflow_ai_stack.services.gemini_service.genai.Client"
+    ) as mock_client_cls:
         mock_instance = mock_client_cls.return_value
         mock_generate = AsyncMock()
         mock_instance.aio.models.generate_content = mock_generate
@@ -189,7 +198,9 @@ async def test_gemini_generate_content_no_model():
 
 @pytest.mark.asyncio
 async def test_gemini_ping_success(gemini_config):
-    with patch("app.services.gemini_service.genai.Client") as mock_client_cls:
+    with patch(
+        "pyflow_ai_stack.services.gemini_service.genai.Client"
+    ) as mock_client_cls:
         mock_instance = mock_client_cls.return_value
         mock_generate = AsyncMock()
         mock_instance.aio.models.generate_content = mock_generate
@@ -204,7 +215,9 @@ async def test_gemini_ping_success(gemini_config):
 
 @pytest.mark.asyncio
 async def test_gemini_ping_failure(gemini_config):
-    with patch("app.services.gemini_service.genai.Client") as mock_client_cls:
+    with patch(
+        "pyflow_ai_stack.services.gemini_service.genai.Client"
+    ) as mock_client_cls:
         mock_instance = mock_client_cls.return_value
         mock_generate = AsyncMock()
         mock_instance.aio.models.generate_content = mock_generate

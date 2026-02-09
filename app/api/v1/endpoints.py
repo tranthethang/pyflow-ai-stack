@@ -9,8 +9,9 @@ import httpx
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from app.core.logger import logger
-from app.schemas.models import BatchRequest, BatchResponse, TaskResponse
-from app.services.gemini_service import get_gemini_service
+from app.core.services import get_gemini_service
+from pyflow_ai_stack.schemas.models import (BatchRequest, BatchResponse,
+                                            TaskResponse)
 
 router = APIRouter()
 

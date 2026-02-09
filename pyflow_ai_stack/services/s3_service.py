@@ -10,9 +10,9 @@ from typing import Any, cast
 import aioboto3
 from botocore.config import Config as BotoConfig
 
-from app.core.logger import logger
-from app.services.base import BaseService
-from app.services.configs import S3Config
+from pyflow_ai_stack.core.logger import logger
+from pyflow_ai_stack.services.base import BaseService
+from pyflow_ai_stack.services.configs import S3Config
 
 
 class S3Service(BaseService):
@@ -140,9 +140,3 @@ class S3Service(BaseService):
             except Exception as e:
                 logger.error(f"S3 ping error: {str(e)}")
                 return False
-
-
-from app.core.config import settings
-
-# Global singleton instance
-s3_service = S3Service(settings.s3)

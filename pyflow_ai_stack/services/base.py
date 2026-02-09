@@ -7,7 +7,7 @@ This module defines the BaseService class which supports hooks for lifecycle eve
 
 from typing import Any, Callable, Dict, List, Optional
 
-from app.core.logger import logger
+from pyflow_ai_stack.core.logger import logger
 
 
 class BaseService:

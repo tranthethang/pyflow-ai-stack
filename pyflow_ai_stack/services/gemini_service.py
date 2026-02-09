@@ -12,9 +12,9 @@ from typing import Any, Dict, List, Optional, cast
 from google import genai
 from google.genai import types
 
-from app.core.logger import logger
-from app.services.base import BaseService
-from app.services.configs import GeminiConfig
+from pyflow_ai_stack.core.logger import logger
+from pyflow_ai_stack.services.base import BaseService
+from pyflow_ai_stack.services.configs import GeminiConfig
 
 
 class GeminiService(BaseService):
@@ -178,21 +178,6 @@ class GeminiService(BaseService):
         except Exception as e:
             logger.error(f"Gemini ping error: {str(e)}")
             return False
-
-
-def get_gemini_service() -> GeminiService:
-    """
-    Get the global GeminiService instance (lazily initialized).
-
-    Returns:
-        GeminiService: The Gemini service instance.
-    """
-    from app.core.config import settings
-
-    global _gemini_service
-    if "_gemini_service" not in globals():
-        globals()["_gemini_service"] = GeminiService(settings.gemini)
-    return globals()["_gemini_service"]
 
 
 # Maintain backward compatibility but encourage get_gemini_service()

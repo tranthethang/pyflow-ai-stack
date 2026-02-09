@@ -1,4 +1,4 @@
-# FastAPI Node Boilerplate
+# PyFlow AI Stack
 
 A high-performance **FastAPI** boilerplate specifically designed for developing **nodes** and **workers** within microservices or **Workflow Automation systems** (such as **Dify**).
 
@@ -30,7 +30,7 @@ This boilerplate is optimized for:
 1. **Clone the repository**:
    ```bash
    git clone <repository-url>
-   cd fastapi-node-boilerplate
+   cd pyflow-ai-stack
    ```
 
 2. **Install dependencies**:

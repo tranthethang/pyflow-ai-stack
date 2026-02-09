@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.services.configs import GeminiConfig
-from app.services.gemini_service import GeminiService
+from pyflow_ai_stack.services.configs import GeminiConfig
+from pyflow_ai_stack.services.gemini_service import GeminiService
 
 
 @pytest.mark.asyncio
@@ -49,8 +49,8 @@ async def test_gemini_service_initialization_with_settings():
     """
     Verify that get_gemini_service() initializes correctly.
     """
-    from app.core.config import settings
-    from app.services.gemini_service import get_gemini_service
+    from pyflow_ai_stack.core.config import settings
+    from pyflow_ai_stack.services.gemini_service import get_gemini_service
 
     service = get_gemini_service()
     assert service.config.api_key == settings.GEMINI_API_KEY

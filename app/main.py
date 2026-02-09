@@ -9,10 +9,12 @@ import uvicorn
 from fastapi import FastAPI
 
 from app.api.v1.endpoints import router as v1_router
-from app.core.config import settings
+from app.core.config import get_settings
 from app.core.logger import logger
-from app.schemas.models import HealthResponse
-from app.services.health_service import health_service
+from app.core.services import get_health_service
+from pyflow_ai_stack.schemas.models import HealthResponse
+
+settings = get_settings()
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -36,11 +38,14 @@ async def health_check(depends: int = 0):
     Returns:
         dict: A dictionary containing the health status of the application and its dependencies.
     """
-    return await health_service.check_health(depends)
+    return await get_health_service().check_health(depends)
 
 
 if __name__ == "__main__":
     logger.info(f"Starting {settings.APP_NAME} on port: {settings.APP_PORT}")
     uvicorn.run(
-        "app.main:app", host="0.0.0.0", port=settings.APP_PORT, reload=settings.DEBUG
+        "app.main:app",
+        host="0.0.0.0",
+        port=settings.APP_PORT,
+        reload=settings.DEBUG,
     )
