@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+pydantic-settings
+google-genai
+aioboto3
+redis
+httpx
+python-multipart
+python-dotenv
+pytest
+pytest-asyncio
+pytest-cov
+boto3
+black
+isort

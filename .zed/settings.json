@@ -1,0 +1,38 @@
+{
+  // Python environment configuration via Pyright (LSP)
+  "lsp": {
+    "pyright": {
+      "settings": {
+        "python": {
+          "pythonPath": ".venv/bin/python",
+          "analysis": {
+            "extraPaths": [".venv/lib/python3.10/site-packages"],
+          },
+        },
+      },
+    },
+  },
+
+  // UI & Editor settings
+  "whitespace": "boundary",
+  "ui_font_size": 16,
+  "buffer_font_size": 16,
+
+  // Rulers (Column indicators)
+  "rulers": [80, 120],
+
+  // Bracket coloring is native and enabled by default in Zed
+  // (No specific key needed like VS Code's bracketPairColorization)
+
+  // Cursor & Animation
+  "cursor_blink": true,
+  "cursor_shape": "block", // Zed doesn't have "expand" exactly, but block is similar
+
+  // Files & Project tree
+  "project_panel": {
+    "filter_filenames": ["node_modules", "vendor", ".git", "__pycache__"],
+  },
+
+  // Formatting & Clean up
+  "format_on_save": "on",
+}
