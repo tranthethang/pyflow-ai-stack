@@ -10,7 +10,7 @@ authors = [
 ]
 description = "A high-performance FastAPI boilerplate for creating Node APIs in workflows, with Gemini, Redis, and S3 integration."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10,<3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",

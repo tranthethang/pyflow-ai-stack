@@ -81,8 +81,8 @@ class GeminiService(BaseService):
 
         async with self.semaphore:
             try:
-                content_parts = parts if parts is not None else []
-                content_parts.append(prompt)
+                # Create a new list to avoid side effects if 'parts' is passed by reference
+                content_parts = (parts or []) + [prompt]
 
                 # Configure generation settings
                 config_params = {}
@@ -172,8 +172,8 @@ class GeminiService(BaseService):
         try:
             if not self.client:
                 return False
-            # Simple check to see if the service is responsive
-            await self._generate_content("ping")
+            # Check if we can access the model metadata (no tokens consumed)
+            await self.client.aio.models.get(model=self.config.model_name)
             return True
         except Exception as e:
             logger.error(f"Gemini ping error: {str(e)}")

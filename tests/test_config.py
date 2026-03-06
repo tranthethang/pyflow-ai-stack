@@ -7,8 +7,12 @@ from pyflow_ai_stack.services.configs import (GeminiConfig, RedisConfig,
                                               S3Config)
 
 
-def test_settings_load_default():
+def test_settings_load_default(monkeypatch):
     """Test loading settings with defaults."""
+    # Ensure environment variables do not interfere with the test
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+    monkeypatch.delenv("REDIS_HOST", raising=False)
+
     settings = Settings.load()
     assert settings.REDIS_HOST == "localhost"
     assert settings.GEMINI_MODEL == "gemini-2.0-flash"

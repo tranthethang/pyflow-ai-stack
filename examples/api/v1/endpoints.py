@@ -29,7 +29,7 @@ async def process_task(task, global_parts):
     """
     try:
         result = await get_gemini_service().generate_content(
-            task.prompt, parts=list(global_parts)
+            task.prompt, parts=global_parts
         )
         return TaskResponse(task_id=task.task_id, status="success", result=result)
     except Exception as e:

@@ -27,13 +27,13 @@ app.include_router(v1_router, prefix="/api/v1", tags=["v1"])
 
 
 @app.get("/health", response_model=HealthResponse, response_model_exclude_none=True)
-async def health_check(depends: int = 0):
+async def health_check(depends: bool = False):
     """
     Check the health of the application and its dependencies.
 
     Args:
-        depends (int): Whether to check external dependencies (Redis, Gemini, S3).
-                       If 1, check dependencies; otherwise, only check app status.
+        depends (bool): Whether to check external dependencies (Redis, Gemini, S3).
+                       If True, check dependencies; otherwise, only check app status.
 
     Returns:
         dict: A dictionary containing the health status of the application and its dependencies.

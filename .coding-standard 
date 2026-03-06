@@ -1,0 +1,19 @@
+## Coding Standards
+
+The project follows strict **PEP 8**, **Google Python Style Guide**, and **SonarQube** standards.
+
+### Naming Conventions
+- **Package / Module**: `snake_case` (short & descriptive)
+- **Class**: `PascalCase`
+- **Function / Method**: `snake_case` (starts with a verb)
+- **Variable / Constant**: `snake_case` / `UPPER_SNAKE_CASE`
+
+### Structural Constraints
+- **File Length**: Maximum **200 lines** per file.
+- **Nesting Depth**: Maximum **3 levels** (use Guard Clauses).
+- **Hard-Coding**: Zero hard-coding; use `.env`, `config.yaml`, or `constants.py`.
+
+### Quality Tools
+- **Linter**: Ruff
+- **Formatter**: Black (88-character limit)
+- **Static Analysis**: SonarLint, mypy
