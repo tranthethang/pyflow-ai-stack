@@ -5,7 +5,7 @@ This module provides the S3Service class which handles file uploads, downloads,
 and integrates with the BaseService hook system using asynchronous boto3.
 """
 
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 import aioboto3
 from botocore.config import Config as BotoConfig
@@ -31,14 +31,17 @@ class S3Service(BaseService):
         """
         super().__init__()
         self.config = config
+        if not self.config.bucket_name:
+            logger.warning("S3 bucket_name is not configured. S3 operations will fail.")
         self.session = aioboto3.Session()
 
-    def _get_client(self, with_path_style: bool = False) -> Any:
+    def _get_client(self, with_path_style: Optional[bool] = None) -> Any:
         """
         Create an S3 client with the stored configuration.
 
         Args:
-            with_path_style (bool): Whether to use path-style addressing.
+            with_path_style (bool, optional): Whether to use path-style addressing.
+                                            If not provided, uses the config value.
 
         Returns:
             Any: An aioboto3 S3 client context manager.
@@ -51,7 +54,14 @@ class S3Service(BaseService):
             "endpoint_url": self.config.endpoint_url,
         }
 
-        if with_path_style:
+        # Use explicitly passed value or fall back to configuration
+        use_path_style = (
+            with_path_style
+            if with_path_style is not None
+            else self.config.with_path_style
+        )
+
+        if use_path_style:
             config_params["config"] = BotoConfig(
                 signature_version="s3v4", s3={"addressing_style": "path"}
             )
@@ -80,7 +90,7 @@ class S3Service(BaseService):
         self, content: Any, s3_key: str, content_type: str = "text/plain"
     ) -> str:
         """Internal method to upload file to S3."""
-        async with cast(Any, self._get_client(with_path_style=True)) as s3:
+        async with cast(Any, self._get_client()) as s3:
             try:
                 await s3.put_object(
                     Bucket=self.config.bucket_name,
@@ -125,10 +135,18 @@ class S3Service(BaseService):
         Returns:
             bool: True if accessible, False otherwise.
         """
-        async with cast(Any, self._get_client(with_path_style=True)) as s3:
+        async with cast(Any, self._get_client()) as s3:
             try:
                 await s3.head_bucket(Bucket=self.config.bucket_name)
                 return True
             except Exception as e:
                 logger.error(f"S3 ping error: {str(e)}")
                 return False
+
+    async def close(self) -> None:
+        """
+        Cleanup S3 service resources.
+        """
+        # aioboto3 Session doesn't require explicit closing,
+        # but we provide this for lifecycle consistency.
+        pass

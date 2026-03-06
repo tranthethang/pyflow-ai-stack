@@ -1,4 +1,3 @@
-import asyncio
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -31,7 +30,9 @@ async def test_gemini_upload_file_success(gemini_config, tmp_path):
         temp_file = tmp_path / "test.txt"
         temp_file.write_text("hello")
 
-        result = await service.upload_file(str(temp_file), "test.txt", "text/plain")
+        result = await service.upload_file(
+            str(temp_file), "test.txt", "text/plain", remove_after_upload=True
+        )
         assert result == mock_file
         mock_upload.assert_called_once()
         assert not os.path.exists(str(temp_file))
@@ -52,7 +53,9 @@ async def test_gemini_upload_file_error(gemini_config, tmp_path):
         temp_file.write_text("hello")
 
         with pytest.raises(Exception):
-            await service.upload_file(str(temp_file), "test.txt")
+            await service.upload_file(
+                str(temp_file), "test.txt", remove_after_upload=True
+            )
         assert not os.path.exists(str(temp_file))
 
 

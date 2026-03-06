@@ -5,7 +5,7 @@ This module provides the HealthService class which aggregates health status
 from various system components like Redis, Gemini, and S3.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from pyflow_ai_stack.services.base import BaseService
 

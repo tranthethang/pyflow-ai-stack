@@ -6,7 +6,7 @@ support for synchronous and asynchronous execution modes.
 """
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks
 
 from examples.core.logger import logger
 from examples.core.services import get_gemini_service
