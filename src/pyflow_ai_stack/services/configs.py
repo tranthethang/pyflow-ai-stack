@@ -6,7 +6,7 @@ This module defines Pydantic models for configuring Gemini, Redis, and S3 servic
 
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class GeminiConfig(BaseModel):
@@ -53,6 +53,7 @@ class S3Config(BaseModel):
         region (str): AWS region.
         bucket_name (str, optional): S3 bucket name.
         endpoint_url (str, optional): Custom endpoint URL (for MinIO).
+        with_path_style (bool): Whether to use path-style addressing.
     """
 
     access_key_id: Optional[str] = None
@@ -60,3 +61,4 @@ class S3Config(BaseModel):
     region: str = "ap-southeast-1"
     bucket_name: Optional[str] = None
     endpoint_url: Optional[str] = None
+    with_path_style: bool = False

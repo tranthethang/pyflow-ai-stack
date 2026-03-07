@@ -6,11 +6,11 @@ support for synchronous and asynchronous execution modes.
 """
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks
 
-from app.core.logger import logger
-from app.schemas.models import BatchRequest, BatchResponse, TaskResponse
-from app.services.gemini_service import gemini_service
+from examples.core.logger import logger
+from examples.core.services import get_gemini_service
+from pyflow_ai_stack.schemas.models import BatchRequest, BatchResponse, TaskResponse
 
 router = APIRouter()
 
@@ -27,8 +27,8 @@ async def process_task(task, global_parts):
         TaskResponse: The result of the task execution.
     """
     try:
-        result = await gemini_service.generate_content(
-            task.prompt, parts=list(global_parts)
+        result = await get_gemini_service().generate_content(
+            task.prompt, parts=global_parts
         )
         return TaskResponse(task_id=task.task_id, status="success", result=result)
     except Exception as e:

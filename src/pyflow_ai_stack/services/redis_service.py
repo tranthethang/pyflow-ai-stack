@@ -9,9 +9,9 @@ from typing import Any, Optional, cast
 
 import redis.asyncio as redis
 
-from app.core.logger import logger
-from app.services.base import BaseService
-from app.services.configs import RedisConfig
+from pyflow_ai_stack.core.logger import logger
+from pyflow_ai_stack.services.base import BaseService
+from pyflow_ai_stack.services.configs import RedisConfig
 
 
 class RedisService(BaseService):
@@ -107,8 +107,8 @@ class RedisService(BaseService):
             logger.error(f"Redis ping error: {str(e)}")
             return False
 
-
-from app.core.config import settings
-
-# Global singleton instance
-redis_service = RedisService(settings.redis)
+    async def close(self) -> None:
+        """
+        Close the Redis connection.
+        """
+        await self.client.aclose()

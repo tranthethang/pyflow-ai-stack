@@ -5,9 +5,10 @@ This module defines the BaseService class which supports hooks for lifecycle eve
 (before, after, error) during service method execution.
 """
 
-from typing import Any, Callable, Dict, List, Optional
+import inspect
+from typing import Any, Callable, Dict, List
 
-from app.core.logger import logger
+from pyflow_ai_stack.core.logger import logger
 
 
 class BaseService:
@@ -56,8 +57,6 @@ class BaseService:
             try:
                 if callable(hook):
                     # Check if hook is async
-                    import inspect
-
                     if inspect.iscoroutinefunction(hook):
                         await hook(*args, **kwargs)
                     else:

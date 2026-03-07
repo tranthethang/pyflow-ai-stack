@@ -1,13 +1,119 @@
-import asyncio
+import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.services.base import BaseService
-from app.services.configs import GeminiConfig, RedisConfig, S3Config
-from app.services.gemini_service import GeminiService
-from app.services.redis_service import RedisService
-from app.services.s3_service import S3Service
+from pyflow_ai_stack.services.base import BaseService
+from pyflow_ai_stack.services.configs import GeminiConfig, RedisConfig, S3Config
+from pyflow_ai_stack.services.gemini_service import GeminiService
+from pyflow_ai_stack.services.health_service import HealthService
+from pyflow_ai_stack.services.redis_service import RedisService
+from pyflow_ai_stack.services.s3_service import S3Service
+
+# --- GeminiService Upload Tests ---
+
+
+@pytest.mark.asyncio
+async def test_gemini_upload_file_success(gemini_config, tmp_path):
+    with patch(
+        "pyflow_ai_stack.services.gemini_service.genai.Client"
+    ) as mock_client_cls:
+        mock_instance = mock_client_cls.return_value
+        mock_upload = AsyncMock()
+        mock_instance.aio.files.upload = mock_upload
+
+        mock_file = MagicMock()
+        mock_upload.return_value = mock_file
+
+        service = GeminiService(gemini_config)
+        temp_file = tmp_path / "test.txt"
+        temp_file.write_text("hello")
+
+        result = await service.upload_file(
+            str(temp_file), "test.txt", "text/plain", remove_after_upload=True
+        )
+        assert result == mock_file
+        mock_upload.assert_called_once()
+        assert not os.path.exists(str(temp_file))
+
+
+@pytest.mark.asyncio
+async def test_gemini_upload_file_error(gemini_config, tmp_path):
+    with patch(
+        "pyflow_ai_stack.services.gemini_service.genai.Client"
+    ) as mock_client_cls:
+        mock_instance = mock_client_cls.return_value
+        mock_upload = AsyncMock()
+        mock_instance.aio.files.upload = mock_upload
+        mock_upload.side_effect = Exception("Upload fail")
+
+        service = GeminiService(gemini_config)
+        temp_file = tmp_path / "test.txt"
+        temp_file.write_text("hello")
+
+        with pytest.raises(Exception):
+            await service.upload_file(
+                str(temp_file), "test.txt", remove_after_upload=True
+            )
+        assert not os.path.exists(str(temp_file))
+
+
+@pytest.mark.asyncio
+async def test_gemini_upload_file_no_client():
+    config = GeminiConfig(api_key=None)
+    service = GeminiService(config)
+    with pytest.raises(ValueError) as excinfo:
+        await service.upload_file("path", "name")
+    assert "Gemini client is not initialized" in str(excinfo.value)
+
+
+# --- HealthService Tests ---
+
+
+@pytest.mark.asyncio
+async def test_health_service_basic():
+    service = HealthService(app_name="test-app")
+    result = await service.check_health(depends=False)
+    assert result["status"] == "healthy"
+    assert result["app"] == "test-app"
+    assert "redis" not in result
+
+
+@pytest.mark.asyncio
+async def test_health_service_full_success():
+    rs = AsyncMock()
+    rs.ping.return_value = True
+    gs = AsyncMock()
+    gs.ping.return_value = True
+    s3 = AsyncMock()
+    s3.ping.return_value = True
+
+    service = HealthService(redis_service=rs, gemini_service=gs, s3_service=s3)
+    result = await service.check_health(depends=True)
+
+    assert result["status"] == "healthy"
+    assert result["redis"] == "connected"
+    assert result["gemini"] == "connected"
+    assert result["s3"] == "connected"
+
+
+@pytest.mark.asyncio
+async def test_health_service_full_failure():
+    rs = AsyncMock()
+    rs.ping.return_value = False
+    gs = AsyncMock()
+    gs.ping.return_value = False
+    s3 = AsyncMock()
+    s3.ping.return_value = False
+
+    service = HealthService(redis_service=rs, gemini_service=gs, s3_service=s3)
+    result = await service.check_health(depends=True)
+
+    assert result["status"] == "unhealthy"
+    assert result["redis"] == "disconnected"
+    assert result["gemini"] == "disconnected"
+    assert result["s3"] == "disconnected"
+
 
 # --- BaseService Tests ---
 
@@ -88,38 +194,54 @@ def gemini_config():
 
 @pytest.mark.asyncio
 async def test_gemini_service_initialization(gemini_config):
-    service = GeminiService(gemini_config)
-    assert service.model is not None
-    assert service.config.api_key == "test_key"
+    with patch("pyflow_ai_stack.services.gemini_service.genai.Client") as mock_client:
+        service = GeminiService(gemini_config)
+        assert service.client is not None
+        mock_client.assert_called_once_with(api_key="test_key")
 
 
 @pytest.mark.asyncio
 async def test_gemini_service_initialization_no_key():
     config = GeminiConfig(api_key=None)
     service = GeminiService(config)
-    assert service.model is None
+    assert service.client is None
 
 
 @pytest.mark.asyncio
 async def test_gemini_generate_content_success(gemini_config):
-    service = GeminiService(gemini_config)
-    mock_response = MagicMock()
-    mock_response.text = "generated text"
+    with patch(
+        "pyflow_ai_stack.services.gemini_service.genai.Client"
+    ) as mock_client_cls:
+        # Setup the mock chain: client.aio.models.generate_content
+        mock_instance = mock_client_cls.return_value
+        mock_generate = AsyncMock()
+        mock_instance.aio.models.generate_content = mock_generate
 
-    with patch("asyncio.get_event_loop") as mock_loop:
-        mock_loop.return_value.run_in_executor = AsyncMock(return_value=mock_response)
+        mock_response = MagicMock()
+        mock_response.text = "generated text"
+        mock_generate.return_value = mock_response
+
+        service = GeminiService(gemini_config)
         result = await service.generate_content("hello")
+
         assert result == "generated text"
+        mock_generate.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_gemini_generate_content_with_advanced_options(gemini_config):
-    service = GeminiService(gemini_config)
-    mock_response = MagicMock()
-    mock_response.text = "advanced result"
+    with patch(
+        "pyflow_ai_stack.services.gemini_service.genai.Client"
+    ) as mock_client_cls:
+        mock_instance = mock_client_cls.return_value
+        mock_generate = AsyncMock()
+        mock_instance.aio.models.generate_content = mock_generate
 
-    with patch("asyncio.get_event_loop") as mock_loop:
-        mock_loop.return_value.run_in_executor = AsyncMock(return_value=mock_response)
+        mock_response = MagicMock()
+        mock_response.text = "advanced result"
+        mock_generate.return_value = mock_response
+
+        service = GeminiService(gemini_config)
         result = await service.generate_content(
             "hello",
             system_instruction="You are a helpful assistant",
@@ -127,26 +249,44 @@ async def test_gemini_generate_content_with_advanced_options(gemini_config):
         )
         assert result == "advanced result"
 
+        # Verify call arguments
+        call_kwargs = mock_generate.call_args.kwargs
+        assert call_kwargs["model"] == "gemini-pro"
+        assert call_kwargs["contents"] == ["hello"]
+        assert call_kwargs["config"].system_instruction == "You are a helpful assistant"
+        assert call_kwargs["config"].temperature == 0.7
+
 
 @pytest.mark.asyncio
 async def test_gemini_generate_content_no_text(gemini_config):
-    service = GeminiService(gemini_config)
-    mock_response = MagicMock()
-    mock_response.text = None
+    with patch(
+        "pyflow_ai_stack.services.gemini_service.genai.Client"
+    ) as mock_client_cls:
+        mock_instance = mock_client_cls.return_value
+        mock_generate = AsyncMock()
+        mock_instance.aio.models.generate_content = mock_generate
 
-    with patch("asyncio.get_event_loop") as mock_loop:
-        mock_loop.return_value.run_in_executor = AsyncMock(return_value=mock_response)
+        mock_response = MagicMock()
+        mock_response.text = None
+        mock_generate.return_value = mock_response
+
+        service = GeminiService(gemini_config)
         result = await service.generate_content("hello")
         assert result == ""
 
 
 @pytest.mark.asyncio
 async def test_gemini_generate_content_error(gemini_config):
-    service = GeminiService(gemini_config)
-    with patch("asyncio.get_event_loop") as mock_loop:
-        mock_loop.return_value.run_in_executor = AsyncMock(
-            side_effect=Exception("API Error")
-        )
+    with patch(
+        "pyflow_ai_stack.services.gemini_service.genai.Client"
+    ) as mock_client_cls:
+        mock_instance = mock_client_cls.return_value
+        mock_generate = AsyncMock()
+        mock_instance.aio.models.generate_content = mock_generate
+
+        mock_generate.side_effect = Exception("API Error")
+
+        service = GeminiService(gemini_config)
         with pytest.raises(Exception) as excinfo:
             await service.generate_content("hello")
         assert "API Error" in str(excinfo.value)
@@ -158,26 +298,38 @@ async def test_gemini_generate_content_no_model():
     service = GeminiService(config)
     with pytest.raises(ValueError) as excinfo:
         await service.generate_content("hello")
-    assert "Gemini model is not initialized" in str(excinfo.value)
+    assert "Gemini client is not initialized" in str(excinfo.value)
 
 
 @pytest.mark.asyncio
 async def test_gemini_ping_success(gemini_config):
-    service = GeminiService(gemini_config)
-    mock_response = MagicMock()
-    mock_response.text = "pong"
-    with patch("asyncio.get_event_loop") as mock_loop:
-        mock_loop.return_value.run_in_executor = AsyncMock(return_value=mock_response)
+    with patch(
+        "pyflow_ai_stack.services.gemini_service.genai.Client"
+    ) as mock_client_cls:
+        mock_instance = mock_client_cls.return_value
+        mock_get_model = AsyncMock()
+        mock_instance.aio.models.get = mock_get_model
+
+        mock_response = MagicMock()
+        mock_get_model.return_value = mock_response
+
+        service = GeminiService(gemini_config)
         assert await service.ping() is True
+        mock_get_model.assert_called_once_with(model="gemini-pro")
 
 
 @pytest.mark.asyncio
 async def test_gemini_ping_failure(gemini_config):
-    service = GeminiService(gemini_config)
-    with patch("asyncio.get_event_loop") as mock_loop:
-        mock_loop.return_value.run_in_executor = AsyncMock(
-            side_effect=Exception("Fail")
-        )
+    with patch(
+        "pyflow_ai_stack.services.gemini_service.genai.Client"
+    ) as mock_client_cls:
+        mock_instance = mock_client_cls.return_value
+        mock_get_model = AsyncMock()
+        mock_instance.aio.models.get = mock_get_model
+
+        mock_get_model.side_effect = Exception("Fail")
+
+        service = GeminiService(gemini_config)
         assert await service.ping() is False
 
 
@@ -268,6 +420,14 @@ async def test_redis_service_delete_error(redis_config):
             await service.delete("key")
 
 
+@pytest.mark.asyncio
+async def test_redis_service_close(redis_config):
+    with patch("redis.asyncio.Redis.aclose", new_callable=AsyncMock) as mock_close:
+        service = RedisService(redis_config)
+        await service.close()
+        mock_close.assert_called_once()
+
+
 # --- S3Service Tests ---
 
 
@@ -282,7 +442,7 @@ async def test_s3_service_upload_success(s3_config):
     mock_s3 = AsyncMock()
     with patch.object(service.session, "client", return_value=mock_s3):
         mock_s3.__aenter__.return_value = mock_s3
-        result = await service.upload_file("content", "key")
+        result = await service.upload_file(b"content", "key")
         assert "s3://test-bucket/key" == result
         mock_s3.put_object.assert_called_once()
 
@@ -295,7 +455,7 @@ async def test_s3_service_upload_error(s3_config):
         mock_s3.__aenter__.return_value = mock_s3
         mock_s3.put_object.side_effect = Exception("S3 Error")
         with pytest.raises(Exception):
-            await service.upload_file("content", "key")
+            await service.upload_file(b"content", "key")
 
 
 @pytest.mark.asyncio
@@ -308,7 +468,7 @@ async def test_s3_service_get_file_success(s3_config):
         mock_body.read.return_value = b"file content"
         mock_s3.get_object.return_value = {"Body": mock_body}
         result = await service.get_file("key")
-        assert result == "file content"
+        assert result == b"file content"
 
 
 @pytest.mark.asyncio
@@ -340,3 +500,38 @@ async def test_s3_service_ping_failure(s3_config):
         mock_s3.__aenter__.return_value = mock_s3
         mock_s3.head_bucket.side_effect = Exception("Fail")
         assert await service.ping() is False
+
+
+@pytest.mark.asyncio
+async def test_s3_service_initialization_no_bucket():
+    config = S3Config(bucket_name="")
+    with patch("pyflow_ai_stack.services.s3_service.logger") as mock_logger:
+        service = S3Service(config)
+        mock_logger.warning.assert_called_once_with(
+            "S3 bucket_name is not configured. S3 operations will fail."
+        )
+
+
+@pytest.mark.asyncio
+async def test_s3_service_close(s3_config):
+    service = S3Service(s3_config)
+    # close should not raise any error
+    await service.close()
+
+
+@pytest.mark.asyncio
+async def test_s3_service_path_style_addressing(s3_config):
+    service = S3Service(s3_config)
+    mock_s3 = AsyncMock()
+    with patch.object(service.session, "client", return_value=mock_s3) as mock_client:
+        mock_s3.__aenter__.return_value = mock_s3
+        await service.upload_file(b"content", "key")
+
+        # Trigger explicit path style
+        async with service._get_client(with_path_style=True) as s3:
+            pass
+
+        # Check if BotoConfig was used
+        args, kwargs = mock_client.call_args_list[1]
+        assert "config" in kwargs
+        assert kwargs["config"].s3["addressing_style"] == "path"

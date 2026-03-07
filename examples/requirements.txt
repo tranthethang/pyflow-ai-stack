@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 pydantic-settings
-google-generativeai
+google-genai
 aioboto3
 redis
 httpx
