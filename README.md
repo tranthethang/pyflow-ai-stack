@@ -35,18 +35,23 @@ pip install git+https://github.com/tranthethang/pyflow-ai-stack.git
 ## 🧠 Core Concepts
 
 ### 1. Configuration System
-The library uses `Pydantic Settings` for centralized configuration. You can load settings from environment variables, a `.env` file, or pass them directly.
+The library uses `Pydantic Settings` for centralized configuration. It is designed to be **stateless**: by default, it loads settings from **environment variables** or direct initialization.
+
+#### Note on `.env` Files:
+- **Core Library**: Does **not** automatically load a `.env` file to maintain flexibility and avoid side effects.
+- **Examples & Development**: You can use `Settings.load(env_file=".env")` to load configurations from a file, which is how the provided `examples/` are configured.
 
 ```python
 from pyflow_ai_stack import Settings
 
-# Default loading (ENV -> .env -> defaults)
+# 1. Default (Loads from Environment Variables only)
 settings = Settings()
 
-# Access specific service configs
+# 2. Manual loading (Loads from .env file + Environment Variables)
+settings = Settings.load(env_file=".env")
+
+# 3. Direct access to service configs
 gemini_cfg = settings.gemini
-redis_cfg = settings.redis
-s3_cfg = settings.s3
 ```
 
 ### 2. Base Service & Hooks

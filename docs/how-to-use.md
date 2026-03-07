@@ -1,6 +1,6 @@
 # Service Documentation
 
-This document describes how to use the core utility services in the `pyflow-ai-stack` library. All services now support a unified configuration system and a hook mechanism for intercepting execution.
+This document describes how to use the core utility services in the `pyflow-ai-stack` library. All services follow a unified configuration system and a hook mechanism for intercepting execution.
 
 ---
 
@@ -12,17 +12,20 @@ The library uses `Pydantic Settings` for centralized configuration. You can load
 ```python
 from pyflow_ai_stack import Settings
 
-# Default loading (ENV -> .env -> defaults)
+# Default loading (Environment Variables -> .env -> defaults)
 settings = Settings()
 
-# Access specific service configs
+# Load from specific .env file
+# settings = Settings.load(env_file=".env.prod")
+
+# Access specific service configuration models
 gemini_cfg = settings.gemini
 redis_cfg = settings.redis
 s3_cfg = settings.s3
 ```
 
 ### 2. Base Service & Hooks
-All services (Gemini, Redis, S3) inherit from `BaseService`. This provides a hook mechanism to intercept execution at three stages: `before`, `after`, and `error`.
+All services (Gemini, Redis, S3, Health) inherit from `BaseService`. This provides a hook mechanism to intercept execution at three stages: `before`, `after`, and `error`.
 
 **Example: Adding a Hook**
 ```python
@@ -52,23 +55,30 @@ gemini_service = GeminiService(settings.gemini)
 # Basic generation
 result = await gemini_service.generate_content("Your prompt here")
 
-# Advanced usage with System Prompt
+# Advanced usage with System Instruction
 result = await gemini_service.generate_content(
     prompt="Tell me a joke",
     system_instruction="You are a sarcastic comedian.",
     generation_config={"temperature": 0.9}
+)
+
+# File upload to Gemini
+file_obj = await gemini_service.upload_file(
+    temp_path="path/to/local/image.jpg",
+    filename="image.jpg",
+    mime_type="image/jpeg"
 )
 ```
 
 **Key Features:**
 - **System Instruction**: Define the AI's persona or constraints.
 - **Concurrency Control**: Automatically managed via a semaphore based on `CONCURRENCY_LIMIT`.
-- **Hooks**: Intercept generation calls for logging or auditing.
+- **Hooks**: Intercept generation or upload calls for logging or auditing.
 
 ---
 
 ## 2. Redis Service
-Handles asynchronous caching and state management.
+Handles asynchronous caching and state management using `redis-py`.
 
 **Usage:**
 ```python
@@ -77,20 +87,20 @@ from pyflow_ai_stack import RedisService, Settings
 settings = Settings()
 redis = RedisService(settings.redis)
 
-# Set a value
-await redis.set("key", "value", expire=3600)
+# Set a value with 1-hour expiration
+await redis.set("user_session:123", "session_data", expire=3600)
 
 # Get a value
-value = await redis.get("key")
+value = await redis.get("user_session:123")
 
 # Delete a key
-await redis.delete("key")
+await redis.delete("user_session:123")
 ```
 
 ---
 
 ## 3. S3 Service
-Handles asynchronous file storage on AWS S3 or MinIO.
+Handles asynchronous file storage on AWS S3 or MinIO using `aioboto3`.
 
 **Usage:**
 ```python
@@ -99,15 +109,15 @@ from pyflow_ai_stack import S3Service, Settings
 settings = Settings()
 s3 = S3Service(settings.s3)
 
-# Upload a file
+# Upload content (string or bytes)
 s3_uri = await s3.upload_file(
     content="file content", 
-    s3_key="path/to/file.txt",
+    s3_key="documents/report.txt",
     content_type="text/plain"
 )
 
-# Download a file
-content = await s3.get_file("path/to/file.txt")
+# Download content as bytes
+content_bytes = await s3.get_file("documents/report.txt")
 ```
 
 ---
@@ -120,14 +130,22 @@ Aggregates health status from all connected services.
 from pyflow_ai_stack import HealthService, GeminiService, RedisService, S3Service, Settings
 
 settings = Settings()
+
+# Initialize dependencies
+redis_svc = RedisService(settings.redis)
+gemini_svc = GeminiService(settings.gemini)
+s3_svc = S3Service(settings.s3)
+
+# Initialize Health Service
 health = HealthService(
-    gemini=GeminiService(settings.gemini),
-    redis=RedisService(settings.redis),
-    s3=S3Service(settings.s3)
+    redis_service=redis_svc,
+    gemini_service=gemini_svc,
+    s3_service=s3_svc,
+    app_name="my-api-service"
 )
 
-# Deep health check
-status = await health.check_health(depends=1)
+# Deep health check (checks external dependencies)
+status = await health.check_health(depends=True)
 ```
 
 ---
@@ -137,7 +155,7 @@ status = await health.check_health(depends=1)
 Settings are automatically loaded from these environment variables:
 
 ### Gemini
-- `GEMINI_API_KEY`: Google AI API Key.
+- `GEMINI_API_KEY`: Google AI API Key (also supports `GOOGLE_API_KEY`).
 - `GEMINI_MODEL`: Model version (default: `gemini-2.0-flash`).
 - `CONCURRENCY_LIMIT`: Max concurrent requests (default: `5`).
 

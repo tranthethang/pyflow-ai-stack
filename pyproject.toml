@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyflow-ai-stack"
-version = "1.0.0"
+version = "1.0.1"
 authors = [
   { name="tranthethang", email="tranthethang@gmail.com" },
 ]
 description = "A high-performance FastAPI boilerplate for creating Node APIs in workflows, with Gemini, Redis, and S3 integration."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10,<3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",

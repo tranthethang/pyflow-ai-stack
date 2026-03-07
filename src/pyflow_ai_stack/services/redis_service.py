@@ -106,3 +106,9 @@ class RedisService(BaseService):
         except Exception as e:
             logger.error(f"Redis ping error: {str(e)}")
             return False
+
+    async def close(self) -> None:
+        """
+        Close the Redis connection.
+        """
+        await self.client.aclose()

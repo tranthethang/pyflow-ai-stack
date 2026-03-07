@@ -7,7 +7,7 @@ manages concurrency, and integrates with the BaseService hook system.
 
 import asyncio
 import os
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, List, Optional
 
 from google import genai
 from google.genai import types
@@ -81,8 +81,8 @@ class GeminiService(BaseService):
 
         async with self.semaphore:
             try:
-                content_parts = parts if parts is not None else []
-                content_parts.append(prompt)
+                # Create a new list to avoid side effects if 'parts' is passed by reference
+                content_parts = (parts or []) + [prompt]
 
                 # Configure generation settings
                 config_params = {}
@@ -113,7 +113,11 @@ class GeminiService(BaseService):
                 raise e
 
     async def upload_file(
-        self, temp_path: str, filename: str, mime_type: str = None
+        self,
+        temp_path: str,
+        filename: str,
+        mime_type: str = None,
+        remove_after_upload: bool = False,
     ) -> Any:
         """
         Upload a file to Gemini, wrapped with service hooks.
@@ -122,6 +126,7 @@ class GeminiService(BaseService):
             temp_path (str): Path to the temporary file.
             filename (str): Display name for the file.
             mime_type (str, optional): MIME type of the file.
+            remove_after_upload (bool): Whether to remove the local file after upload.
 
         Returns:
             Any: The uploaded Gemini file object.
@@ -132,10 +137,15 @@ class GeminiService(BaseService):
             temp_path,
             filename,
             mime_type,
+            remove_after_upload,
         )
 
     async def _upload_file(
-        self, temp_path: str, filename: str, mime_type: str = None
+        self,
+        temp_path: str,
+        filename: str,
+        mime_type: str = None,
+        remove_after_upload: bool = False,
     ) -> Any:
         """Internal method to upload file to Gemini."""
         if not self.client:
@@ -159,7 +169,7 @@ class GeminiService(BaseService):
                 logger.error(f"Gemini upload error: {str(e)}")
                 raise e
             finally:
-                if os.path.exists(temp_path):
+                if remove_after_upload and os.path.exists(temp_path):
                     os.remove(temp_path)
 
     async def ping(self) -> bool:
@@ -172,13 +182,9 @@ class GeminiService(BaseService):
         try:
             if not self.client:
                 return False
-            # Simple check to see if the service is responsive
-            await self._generate_content("ping")
+            # Check if we can access the model metadata (no tokens consumed)
+            await self.client.aio.models.get(model=self.config.model_name)
             return True
         except Exception as e:
             logger.error(f"Gemini ping error: {str(e)}")
             return False
-
-
-# Maintain backward compatibility but encourage get_gemini_service()
-# We'll initialize it lazily when accessed if possible, but for now just provide the function

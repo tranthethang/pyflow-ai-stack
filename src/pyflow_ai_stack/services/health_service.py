@@ -5,7 +5,7 @@ This module provides the HealthService class which aggregates health status
 from various system components like Redis, Gemini, and S3.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from pyflow_ai_stack.services.base import BaseService
 
@@ -39,13 +39,13 @@ class HealthService(BaseService):
         self._s3_service = s3_service
         self._app_name = app_name
 
-    async def check_health(self, depends: int = 0) -> Dict[str, Any]:
+    async def check_health(self, depends: bool = False) -> Dict[str, Any]:
         """
         Check the health of the application and its dependencies.
 
         Args:
-            depends (int): Whether to check external dependencies.
-                           If 1, check dependencies; otherwise, only check app status.
+            depends (bool): Whether to check external dependencies.
+                           If True, check dependencies; otherwise, only check app status.
 
         Returns:
             dict: A dictionary containing the health status.
@@ -54,14 +54,14 @@ class HealthService(BaseService):
             "check_health", self._check_health, depends
         )
 
-    async def _check_health(self, depends: int = 0) -> Dict[str, Any]:
+    async def _check_health(self, depends: bool = False) -> Dict[str, Any]:
         """Internal method to check health."""
         health_status = {
             "status": "healthy",
             "app": self._app_name,
         }
 
-        if depends == 1:
+        if depends:
             # Use provided services
             rs = self._redis_service
             gs = self._gemini_service
