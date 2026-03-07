@@ -4,8 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from pyflow_ai_stack.services.base import BaseService
-from pyflow_ai_stack.services.configs import (GeminiConfig, RedisConfig,
-                                              S3Config)
+from pyflow_ai_stack.services.configs import GeminiConfig, RedisConfig, S3Config
 from pyflow_ai_stack.services.gemini_service import GeminiService
 from pyflow_ai_stack.services.health_service import HealthService
 from pyflow_ai_stack.services.redis_service import RedisService
@@ -421,6 +420,14 @@ async def test_redis_service_delete_error(redis_config):
             await service.delete("key")
 
 
+@pytest.mark.asyncio
+async def test_redis_service_close(redis_config):
+    with patch("redis.asyncio.Redis.aclose", new_callable=AsyncMock) as mock_close:
+        service = RedisService(redis_config)
+        await service.close()
+        mock_close.assert_called_once()
+
+
 # --- S3Service Tests ---
 
 
@@ -493,3 +500,38 @@ async def test_s3_service_ping_failure(s3_config):
         mock_s3.__aenter__.return_value = mock_s3
         mock_s3.head_bucket.side_effect = Exception("Fail")
         assert await service.ping() is False
+
+
+@pytest.mark.asyncio
+async def test_s3_service_initialization_no_bucket():
+    config = S3Config(bucket_name="")
+    with patch("pyflow_ai_stack.services.s3_service.logger") as mock_logger:
+        service = S3Service(config)
+        mock_logger.warning.assert_called_once_with(
+            "S3 bucket_name is not configured. S3 operations will fail."
+        )
+
+
+@pytest.mark.asyncio
+async def test_s3_service_close(s3_config):
+    service = S3Service(s3_config)
+    # close should not raise any error
+    await service.close()
+
+
+@pytest.mark.asyncio
+async def test_s3_service_path_style_addressing(s3_config):
+    service = S3Service(s3_config)
+    mock_s3 = AsyncMock()
+    with patch.object(service.session, "client", return_value=mock_s3) as mock_client:
+        mock_s3.__aenter__.return_value = mock_s3
+        await service.upload_file(b"content", "key")
+
+        # Trigger explicit path style
+        async with service._get_client(with_path_style=True) as s3:
+            pass
+
+        # Check if BotoConfig was used
+        args, kwargs = mock_client.call_args_list[1]
+        assert "config" in kwargs
+        assert kwargs["config"].s3["addressing_style"] == "path"

@@ -10,8 +10,7 @@ from fastapi import APIRouter, BackgroundTasks
 
 from examples.core.logger import logger
 from examples.core.services import get_gemini_service
-from pyflow_ai_stack.schemas.models import (BatchRequest, BatchResponse,
-                                            TaskResponse)
+from pyflow_ai_stack.schemas.models import BatchRequest, BatchResponse, TaskResponse
 
 router = APIRouter()
 

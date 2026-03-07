@@ -1,6 +1,5 @@
 from pyflow_ai_stack.core.config import Settings
-from pyflow_ai_stack.services.configs import (GeminiConfig, RedisConfig,
-                                              S3Config)
+from pyflow_ai_stack.services.configs import GeminiConfig, RedisConfig, S3Config
 
 
 def test_settings_load_default(monkeypatch):
